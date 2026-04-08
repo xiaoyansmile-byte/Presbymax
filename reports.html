@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>训练报告 - 视力训练系统</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --success: #34c759;
+      --error: #ff3b30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p.lead {
+      color: var(--text-secondary);
+      margin: 0 0 1.75rem;
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+    .report-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .report-section {
+      margin-bottom: 2rem;
+    }
+    .report-section:last-child {
+      margin-bottom: 0;
+    }
+    .report-section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .report-section p {
+      margin: 0 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text);
+      font: inherit;
+      transition: border-color 0.2s ease;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      font: inherit;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: var(--hover-bg);
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    button.primary:hover:not(:disabled) { background: #0077ed; }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .status.success { background: rgba(81, 207, 102, 0.1); border: 1px solid #51cf66; color: #51cf66; }
+    .status.error { background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; }
+    .report-preview {
+      background: var(--hover-bg);
+      border-radius: 6px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      min-height: 300px;
+    }
+    .report-preview h3 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+    .report-preview .report-content {
+      margin-top: 1.5rem;
+    }
+    .report-preview .section {
+      margin-bottom: 1.5rem;
+    }
+    .report-preview .section h4 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+      color: var(--accent);
+    }
+    .report-preview .section p {
+      margin: 0 0 0.5rem;
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+    .report-preview .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .report-preview .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .report-preview .stat-card .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+    .report-preview .stat-card .label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      p.lead {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      .report-container {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .report-section {
+        margin-bottom: 1.5rem;
+      }
+      .report-section h2 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .report-section p {
+        font-size: 0.8rem;
+        margin-bottom: 1.25rem;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+      .form-group {
+        margin-bottom: 0.75rem;
+      }
+      .form-group label {
+        font-size: 0.8rem;
+      }
+      .form-group input,
+      .form-group select {
+        padding: 0.6rem;
+        font-size: 0.9rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .report-preview {
+        padding: 1.25rem;
+        min-height: 250px;
+      }
+      .report-preview h3 {
+        font-size: 1rem;
+      }
+      .report-preview .section {
+        margin-bottom: 1.25rem;
+      }
+      .report-preview .section h4 {
+        font-size: 0.9rem;
+      }
+      .report-preview .section p {
+        font-size: 0.8rem;
+      }
+      .report-preview .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+      .report-preview .stat-card {
+        padding: 0.9rem;
+      }
+      .report-preview .stat-card .value {
+        font-size: 1.25rem;
+      }
+      .report-preview .stat-card .label {
+        font-size: 0.75rem;
+      }
+      .btn-group {
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1rem 0.5rem;
+      }
+      h1 {
+        font-size: 1.15rem;
+      }
+      p.lead {
+        font-size: 0.85rem;
+      }
+      .report-container {
+        padding: 1.1rem;
+        margin-bottom: 1.25rem;
+      }
+      .report-section {
+        margin-bottom: 1.25rem;
+      }
+      .report-section h2 {
+        font-size: 0.95rem;
+      }
+      .form-group input,
+      .form-group select {
+        padding: 0.5rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+      }
+      .report-preview {
+        padding: 1rem;
+        min-height: 220px;
+      }
+      .report-preview h3 {
+        font-size: 0.95rem;
+      }
+      .report-preview .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .report-preview .stat-card {
+        padding: 0.8rem;
+      }
+      .report-preview .stat-card .value {
+        font-size: 1.15rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>训练报告</h1>
+    <p class="lead">生成专业的训练报告，跟踪您的视力训练进度和效果。</p>
+
+    <div class="report-container">
+      <div class="report-section">
+        <h2>生成报告</h2>
+        <p>选择报告类型和时间范围，生成详细的训练报告。</p>
+        <form id="report-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="report-type">报告类型</label>
+              <select id="report-type" required>
+                <option value="summary">摘要报告</option>
+                <option value="detailed">详细报告</option>
+                <option value="progress">进度报告</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="report-range">时间范围</label>
+              <select id="report-range" required>
+                <option value="7">最近7天</option>
+                <option value="30">最近30天</option>
+                <option value="90">最近90天</option>
+                <option value="all">全部时间</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="primary">生成报告</button>
+        </form>
+      </div>
+
+      <div class="report-section">
+        <h2>报告预览</h2>
+        <p>生成的报告将显示在这里。</p>
+        <div class="report-preview" id="report-preview">
+          <h3>训练报告预览</h3>
+          <div class="report-content" id="report-content">
+            <p>请选择报告类型和时间范围，然后点击生成报告按钮。</p>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="primary" id="download-pdf" disabled>下载 PDF</button>
+          <button type="button" class="primary" id="download-json" disabled>下载 JSON</button>
+          <button type="button" class="primary" id="share-report" disabled>分享报告</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status" id="status" style="display: none;"></div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const STORAGE_KEY = "gabor-training-history";
+    const CURRENT_USER_KEY = "vision-training-current-user";
+    const TRAINING_PLAN_KEY = "vision-training-plan";
+
+    // DOM 元素
+    const reportForm = document.getElementById('report-form');
+    const reportType = document.getElementById('report-type');
+    const reportRange = document.getElementById('report-range');
+    const reportPreview = document.getElementById('report-preview');
+    const reportContent = document.getElementById('report-content');
+    const downloadPdf = document.getElementById('download-pdf');
+    const downloadJson = document.getElementById('download-json');
+    const shareReport = document.getElementById('share-report');
+    const statusEl = document.getElementById('status');
+
+    // 显示状态消息
+    function showStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${isError ? 'error' : 'success'}`;
+      statusEl.style.display = 'block';
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 3000);
+    }
+
+    // 加载训练历史
+    function loadTrainingHistory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const history = JSON.parse(raw);
+        return Array.isArray(history) ? history : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 加载当前用户
+    function loadCurrentUser() {
+      try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 加载训练计划
+    function loadTrainingPlan() {
+      try {
+        const raw = localStorage.getItem(TRAINING_PLAN_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 过滤训练历史
+    function filterHistory(history, days) {
+      if (days === 'all') return history;
+      
+      const now = new Date();
+      const cutoffDate = new Date();
+      cutoffDate.setDate(now.getDate() - parseInt(days, 10));
+      
+      return history.filter(item => {
+        const itemDate = new Date(item.ts);
+        return itemDate >= cutoffDate;
+      });
+    }
+
+    // 计算统计数据
+    function calculateStats(history) {
+      if (history.length === 0) {
+        return {
+          totalSessions: 0,
+          totalDuration: 0,
+          highestScore: 0,
+          averageScore: 0,
+          averageDifficulty: 4,
+          successRate: 0
+        };
+      }
+
+      const totalSessions = history.length;
+      const totalDuration = history.reduce((sum, item) => sum + (item.durationSec || 0), 0) / 60;
+      const scores = history.map(item => item.score || 0);
+      const difficulties = history.map(item => item.maxK || 4);
+      const highestScore = Math.max(...scores);
+      const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+      const averageDifficulty = difficulties.reduce((sum, diff) => sum + diff, 0) / difficulties.length;
+      
+      // 假设成功次数等于总次数（简化处理）
+      const successRate = 100; // 实际应该根据正确/错误次数计算
+
+      return {
+        totalSessions,
+        totalDuration: Math.round(totalDuration * 10) / 10,
+        highestScore,
+        averageScore: Math.round(averageScore * 10) / 10,
+        averageDifficulty: Math.round(averageDifficulty * 10) / 10,
+        successRate
+      };
+    }
+
+    // 生成报告
+    function generateReport(type, range) {
+      const history = loadTrainingHistory();
+      const filteredHistory = filterHistory(history, range);
+      const stats = calculateStats(filteredHistory);
+      const user = loadCurrentUser();
+      const plan = loadTrainingPlan();
+      
+      let reportHTML = '';
+      
+      // 报告头部
+      reportHTML += `
+        <div class="section">
+          <h4>报告信息</h4>
+          <p><strong>报告类型：</strong>${getReportTypeText(type)}</p>
+          <p><strong>时间范围：</strong>${getRangeText(range)}</p>
+          <p><strong>生成日期：</strong>${new Date().toLocaleString('zh-CN')}</p>
+          ${user ? `<p><strong>用户：</strong>${user.name}</p>` : ''}
+          ${plan ? `<p><strong>训练计划：</strong>${plan.name}</p>` : ''}
+        </div>
+      `;
+      
+      // 统计摘要
+      reportHTML += `
+        <div class="section">
+          <h4>训练统计</h4>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="value">${stats.totalSessions}</div>
+              <div class="label">训练次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="value">${stats.totalDuration}</div>
+              <div class="label">总时长(分钟)</div>
+            </div>
+            <div class="stat-card">
+              <div class="value">${stats.highestScore}</div>
+              <div class="label">最高得分</div>
+            </div>
+            <div class="stat-card">
+              <div class="value">${stats.averageScore}</div>
+              <div class="label">平均得分</div>
+            </div>
+            <div class="stat-card">
+              <div class="value">${stats.averageDifficulty}</div>
+              <div class="label">平均难度</div>
+            </div>
+            <div class="stat-card">
+              <div class="value">${stats.successRate}%</div>
+              <div class="label">成功率</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // 详细报告
+      if (type === 'detailed' && filteredHistory.length > 0) {
+        reportHTML += `
+          <div class="section">
+            <h4>训练详情</h4>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                <thead>
+                  <tr style="background: var(--panel);">
+                    <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">日期</th>
+                    <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">得分</th>
+                    <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">时长</th>
+                    <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">模式</th>
+                    <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">最大难度</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        filteredHistory.slice().reverse().forEach(item => {
+          reportHTML += `
+            <tr style="border-bottom: 1px solid #343a40;">
+              <td style="padding: 0.5rem;">${new Date(item.ts).toLocaleString('zh-CN')}</td>
+              <td style="padding: 0.5rem;">${item.score || 0}</td>
+              <td style="padding: 0.5rem;">${item.durationSec || 0}秒</td>
+              <td style="padding: 0.5rem;">${item.mode === 'auto' ? '自动' : '手动'}</td>
+              <td style="padding: 0.5rem;">${item.maxK || 4}×${item.maxK || 4}</td>
+            </tr>
+          `;
+        });
+        
+        reportHTML += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 进度分析
+      if (type === 'progress' && filteredHistory.length > 0) {
+        reportHTML += `
+          <div class="section">
+            <h4>进度分析</h4>
+            <p>基于您的训练数据，您的视力训练进度如下：</p>
+            <p><strong>训练频率：</strong>平均 ${(stats.totalSessions / (parseInt(range) || 30)).toFixed(2)} 次/天</p>
+            <p><strong>进步趋势：</strong>${getProgressTrend(filteredHistory)}</p>
+            <p><strong>建议：</strong>${getRecommendations(stats)}</p>
+          </div>
+        `;
+      }
+      
+      return reportHTML;
+    }
+
+    // 获取报告类型文本
+    function getReportTypeText(type) {
+      switch (type) {
+        case 'summary': return '摘要报告';
+        case 'detailed': return '详细报告';
+        case 'progress': return '进度报告';
+        default: return '摘要报告';
+      }
+    }
+
+    // 获取时间范围文本
+    function getRangeText(range) {
+      switch (range) {
+        case '7': return '最近7天';
+        case '30': return '最近30天';
+        case '90': return '最近90天';
+        case 'all': return '全部时间';
+        default: return '最近30天';
+      }
+    }
+
+    // 获取进度趋势
+    function getProgressTrend(history) {
+      if (history.length < 2) return '数据不足，无法分析趋势';
+      
+      const sortedHistory = history.slice().sort((a, b) => new Date(a.ts) - new Date(b.ts));
+      const firstHalf = sortedHistory.slice(0, Math.floor(sortedHistory.length / 2));
+      const secondHalf = sortedHistory.slice(Math.floor(sortedHistory.length / 2));
+      
+      const firstAvg = firstHalf.reduce((sum, item) => sum + (item.score || 0), 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((sum, item) => sum + (item.score || 0), 0) / secondHalf.length;
+      
+      const improvement = ((secondAvg - firstAvg) / firstAvg) * 100;
+      
+      if (improvement > 10) {
+        return `明显进步，得分提升了 ${improvement.toFixed(1)}%`;
+      } else if (improvement > 0) {
+        return `有所进步，得分提升了 ${improvement.toFixed(1)}%`;
+      } else if (improvement > -5) {
+        return '保持稳定，得分波动不大';
+      } else {
+        return '需要加强训练，得分有所下降';
+      }
+    }
+
+    // 获取建议
+    function getRecommendations(stats) {
+      if (stats.totalSessions < 5) {
+        return '建议增加训练频率，每周至少进行3-5次训练';
+      } else if (stats.averageScore < 10) {
+        return '建议从基础难度开始，逐步提高训练强度';
+      } else if (stats.averageDifficulty < 5) {
+        return '建议尝试更高难度的训练，挑战自己的视力极限';
+      } else {
+        return '继续保持良好的训练习惯，定期进行视力检查';
+      }
+    }
+
+    // 下载报告为JSON
+    function downloadJsonReport() {
+      const type = reportType.value;
+      const range = reportRange.value;
+      const history = loadTrainingHistory();
+      const filteredHistory = filterHistory(history, range);
+      const stats = calculateStats(filteredHistory);
+      const user = loadCurrentUser();
+      const plan = loadTrainingPlan();
+      
+      const reportData = {
+        type: type,
+        range: range,
+        generatedAt: new Date().toISOString(),
+        user: user,
+        plan: plan,
+        stats: stats,
+        history: filteredHistory
+      };
+      
+      const jsonString = JSON.stringify(reportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vision-training-report-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showStatus('报告已下载为JSON文件');
+    }
+
+    // 分享报告
+    function shareReportLink() {
+      showStatus('分享功能暂未实现', true);
+    }
+
+    // 事件监听器
+    reportForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const type = reportType.value;
+      const range = reportRange.value;
+      
+      const reportHTML = generateReport(type, range);
+      reportContent.innerHTML = reportHTML;
+      
+      // 启用下载按钮
+      downloadPdf.disabled = false;
+      downloadJson.disabled = false;
+      shareReport.disabled = false;
+      
+      showStatus('报告生成成功！');
+    });
+    
+    downloadPdf.addEventListener('click', function() {
+      showStatus('PDF下载功能暂未实现', true);
+    });
+    
+    downloadJson.addEventListener('click', downloadJsonReport);
+    
+    shareReport.addEventListener('click', shareReportLink);
+
+  })();
+  </script>
+</body>
+</html>

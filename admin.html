@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - ProsbyMax/MCL Vision Training</title>
+    <script src="menu.js?v=20260407c"></script>
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --text: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #0071e3;
+            --card-bg: #ffffff;
+            --border: #d2d2d7;
+            --hover-bg: #f2f2f7;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 0;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text);
+        }
+
+        .menu-container {
+            position: relative;
+        }
+
+        .menu-button {
+            background: none;
+            border: none;
+            font: inherit;
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .menu-button:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+            z-index: 200;
+        }
+
+        .menu-container:hover .menu-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .menu-dropdown:hover {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .menu-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            text-decoration: none;
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .menu-dropdown a:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0 0 1rem;
+            color: var(--text);
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin: 0;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: #0071e3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0077ed;
+        }
+
+        .btn-danger {
+            background-color: #ff3b30;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #ff453a;
+        }
+
+        .storage-section {
+            margin-bottom: 40px;
+        }
+
+        .storage-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .storage-group {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .storage-group-header {
+            background-color: var(--hover-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .storage-group-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text);
+        }
+
+        .storage-group-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .storage-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .storage-table th {
+            background-color: #f8f8f8;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .storage-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e5e5ea;
+            font-size: 14px;
+        }
+
+        .storage-table tr:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .storage-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close {
+            color: var(--text-secondary);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: var(--text);
+        }
+
+        .json-content {
+            background-color: #f5f5f7;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 1rem;
+            }
+
+            .header-content {
+                padding: 0;
+            }
+
+            .header h1 {
+                font-size: 1.1rem;
+            }
+
+            .menu-button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .container {
+                padding: 1.25rem 1rem;
+            }
+
+            .hero {
+                margin-bottom: 2rem;
+            }
+
+            .hero h2 {
+                font-size: 1.4rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .admin-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 10px;
+            }
+
+            .storage-group-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .storage-group-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .storage-table th,
+            .storage-table td {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 20% auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .menu-button {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+
+            .hero h2 {
+                font-size: 1.25rem;
+            }
+
+            .hero p {
+                font-size: 0.9rem;
+            }
+
+            .storage-group-header {
+                padding: 12px 15px;
+            }
+
+            .storage-group-header h3 {
+                font-size: 1rem;
+            }
+
+            .storage-table th,
+            .storage-table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+        }
+    
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>ProsbyMax/MCL Vision Training</h1>
+            <div id="menu-container"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="hero">
+            <h2>LocalStorage管理后台</h2>
+            <p>管理和查看系统中的LocalStorage数据</p>
+        </div>
+
+        <div class="admin-actions">
+            <button class="btn btn-primary" onclick="refreshStorage()">刷新数据</button>
+            <button class="btn btn-danger" onclick="clearAllStorage()">清空所有数据</button>
+        </div>
+
+        <div class="storage-section">
+            <h2>LocalStorage数据</h2>
+            <div id="storage-data"></div>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">数据详情</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modalContent" class="json-content"></div>
+        </div>
+    </div>
+
+    <script>
+        function refreshStorage() {
+            const storageData = document.getElementById('storage-data');
+            storageData.innerHTML = '';
+
+            if (localStorage.length === 0) {
+                storageData.innerHTML = '<div class="empty-state">LocalStorage为空</div>';
+                return;
+            }
+
+            // 按数据类型分组
+            const groups = {};
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                try {
+                    const parsed = JSON.parse(value);
+                    // 确定数据类型
+                    let type = '其他';
+                    if (Array.isArray(parsed)) {
+                        type = '数组';
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        // 检查是否为用户数据
+                        if (parsed.name && parsed.email) {
+                            type = '用户数据';
+                        } 
+                        // 检查是否为训练计划
+                        else if (parsed.id && parsed.name && parsed.trainings) {
+                            type = '训练计划';
+                        }
+                        // 检查是否为训练历史
+                        else if (parsed.sessions) {
+                            type = '训练历史';
+                        } else {
+                            type = '对象';
+                        }
+                    }
+
+                    if (!groups[type]) {
+                        groups[type] = [];
+                    }
+                    groups[type].push({ key, value, parsed });
+                } catch (e) {
+                    // 非JSON数据
+                    if (!groups['字符串']) {
+                        groups['字符串'] = [];
+                    }
+                    groups['字符串'].push({ key, value, parsed: value });
+                }
+            }
+
+            // 生成分组显示
+            for (const [type, items] of Object.entries(groups)) {
+                const groupElement = document.createElement('div');
+                groupElement.className = 'storage-group';
+                
+                groupElement.innerHTML = `
+                    <div class="storage-group-header">
+                        <h3>${type} (${items.length})</h3>
+                        <div class="storage-group-actions">
+                            <button class="btn btn-sm btn-danger" onclick="clearGroup('${type}')">清空此组</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="storage-table">
+                            <thead>
+                                <tr id="${type}-header"></tr>
+                            </thead>
+                            <tbody id="${type}-body"></tbody>
+                        </table>
+                    </div>
+                `;
+                
+                storageData.appendChild(groupElement);
+
+                // 生成表头
+                const headerElement = document.getElementById(`${type}-header`);
+                if (items.length > 0) {
+                    const firstItem = items[0];
+                    headerElement.innerHTML = '<th>键</th>';
+                    
+                    // 对于对象类型，生成基于结构的表头
+                    if (typeof firstItem.parsed === 'object' && firstItem.parsed !== null) {
+                        const keys = Object.keys(firstItem.parsed);
+                        keys.forEach(key => {
+                            headerElement.innerHTML += `<th>${key}</th>`;
+                        });
+                    } else {
+                        headerElement.innerHTML += '<th>值</th>';
+                    }
+                    headerElement.innerHTML += '<th>操作</th>';
+                }
+
+                // 生成表体
+                const bodyElement = document.getElementById(`${type}-body`);
+                items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item.key}</td>`;
+                    
+                    if (typeof item.parsed === 'object' && item.parsed !== null) {
+                        const values = Object.values(item.parsed);
+                        values.forEach(value => {
+                            const cellValue = typeof value === 'object' ? JSON.stringify(value).substring(0, 50) + '...' : value;
+                            row.innerHTML += `<td>${cellValue}</td>`;
+                        });
+                    } else {
+                        const cellValue = String(item.parsed).substring(0, 100) + (String(item.parsed).length > 100 ? '...' : '');
+                        row.innerHTML += `<td>${cellValue}</td>`;
+                    }
+                    
+                    row.innerHTML += `
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-primary" onclick="viewItem('${item.key}')">详情</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.key}')">删除</button>
+                            </div>
+                        </td>
+                    `;
+                    
+                    bodyElement.appendChild(row);
+                });
+            }
+        }
+
+        function viewItem(key) {
+            const value = localStorage.getItem(key);
+            const modal = document.getElementById('detailModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalTitle.textContent = `数据详情: ${key}`;
+            
+            try {
+                const parsed = JSON.parse(value);
+                modalContent.textContent = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                modalContent.textContent = value;
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('detailModal');
+            modal.style.display = 'none';
+        }
+
+        function deleteItem(key) {
+            if (confirm(`确定要删除键 "${key}" 的数据吗？`)) {
+                localStorage.removeItem(key);
+                refreshStorage();
+            }
+        }
+
+        function clearGroup(type) {
+            if (confirm(`确定要清空 "${type}" 组的所有数据吗？`)) {
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    
+                    try {
+                        const parsed = JSON.parse(value);
+                        let itemType = '其他';
+                        if (Array.isArray(parsed)) {
+                            itemType = '数组';
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                            if (parsed.name && parsed.email) {
+                                itemType = '用户数据';
+                            } else if (parsed.id && parsed.name && parsed.trainings) {
+                                itemType = '训练计划';
+                            } else if (parsed.sessions) {
+                                itemType = '训练历史';
+                            } else {
+                                itemType = '对象';
+                            }
+                        }
+
+                        if (itemType === type) {
+                            localStorage.removeItem(key);
+                        }
+                    } catch (e) {
+                        if (type === '字符串') {
+                            localStorage.removeItem(key);
+                        }
+                    }
+                }
+                refreshStorage();
+            }
+        }
+
+        function clearAllStorage() {
+            if (confirm('确定要清空所有LocalStorage数据吗？此操作不可恢复！')) {
+                localStorage.clear();
+                refreshStorage();
+            }
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 页面加载时刷新数据
+        window.onload = refreshStorage;
+    </script>
+</body>
+</html>

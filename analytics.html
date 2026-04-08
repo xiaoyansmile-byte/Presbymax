@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>数据分析 - 视力训练系统</title>
+  <script src="menu.js?v=20260407c"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p.lead {
+      color: var(--text-secondary);
+      margin: 0 0 1.75rem;
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .stat-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+    .stat-card .label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    .chart-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .chart-container h2 {
+      margin: 0 0 1.5rem;
+      font-size: 1.1rem;
+    }
+    .chart {
+      width: 100%;
+      height: 300px;
+      position: relative;
+    }
+    .chart canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+    }
+    .history-table th,
+    .history-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-table th {
+      background: var(--hover-bg);
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .history-table tr:hover {
+      background: var(--hover-bg);
+    }
+    .filter-container {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .filter-group label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    .filter-group select {
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text);
+      font: inherit;
+    }
+    .status {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .status.success { background: rgba(81, 207, 102, 0.1); border: 1px solid #51cf66; color: #51cf66; }
+    .status.error { background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; }
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+    }
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      p.lead {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .stat-card {
+        padding: 1.25rem;
+      }
+      .stat-card .value {
+        font-size: 1.75rem;
+      }
+      .filter-container {
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+      .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+      .chart-container {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .chart-container h2 {
+        font-size: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      .chart {
+        height: 250px;
+      }
+      .history-table {
+        font-size: 0.8rem;
+      }
+      .history-table th,
+      .history-table td {
+        padding: 0.5rem;
+      }
+      .history-table th {
+        font-size: 0.75rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1rem 0.5rem;
+      }
+      h1 {
+        font-size: 1.15rem;
+      }
+      p.lead {
+        font-size: 0.85rem;
+      }
+      .stat-card {
+        padding: 1.1rem;
+      }
+      .stat-card .value {
+        font-size: 1.5rem;
+      }
+      .chart-container {
+        padding: 1.1rem;
+        margin-bottom: 1.25rem;
+      }
+      .chart {
+        height: 220px;
+      }
+      .history-table {
+        font-size: 0.75rem;
+      }
+      .history-table th,
+      .history-table td {
+        padding: 0.4rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>数据分析</h1>
+    <p class="lead">查看您的训练历史和进度分析。</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>总训练次数</h3>
+        <div class="value" id="total-sessions">0</div>
+        <div class="label">次训练</div>
+      </div>
+      <div class="stat-card">
+        <h3>总训练时长</h3>
+        <div class="value" id="total-duration">0</div>
+        <div class="label">分钟</div>
+      </div>
+      <div class="stat-card">
+        <h3>最高得分</h3>
+        <div class="value" id="highest-score">0</div>
+        <div class="label">分</div>
+      </div>
+      <div class="stat-card">
+        <h3>平均得分</h3>
+        <div class="value" id="average-score">0</div>
+        <div class="label">分/次</div>
+      </div>
+    </div>
+
+    <div class="filter-container">
+      <div class="filter-group">
+        <label for="time-range">时间范围：</label>
+        <select id="time-range">
+          <option value="7">最近7天</option>
+          <option value="30">最近30天</option>
+          <option value="90">最近90天</option>
+          <option value="all">全部时间</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="training-type">训练类型：</label>
+        <select id="training-type">
+          <option value="all">全部类型</option>
+          <option value="gabor-match">Gabor配对</option>
+          <option value="flicker-gabor">闪烁Gabor</option>
+          <option value="brightness">对比辨别</option>
+          <option value="reading">阅读清晰度</option>
+          <option value="glare">眩光测试</option>
+          <option value="tunnel">隧道识别</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2>训练趋势</h2>
+      <div class="chart">
+        <canvas id="progress-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2>训练类型分布</h2>
+      <div class="chart" style="height: 250px;">
+        <canvas id="type-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2>训练历史</h2>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>训练类型</th>
+            <th>得分</th>
+            <th>时长</th>
+            <th>模式</th>
+            <th>最大难度</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr>
+            <td colspan="6" class="empty-state">暂无训练记录</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const STORAGE_KEY = "gabor-training-history";
+    const CURRENT_USER_KEY = "vision-training-current-user";
+    const TRAINING_PLAN_KEY = "vision-training-plan";
+
+    // DOM 元素
+    const totalSessionsEl = document.getElementById('total-sessions');
+    const totalDurationEl = document.getElementById('total-duration');
+    const highestScoreEl = document.getElementById('highest-score');
+    const averageScoreEl = document.getElementById('average-score');
+    const timeRangeEl = document.getElementById('time-range');
+    const trainingTypeEl = document.getElementById('training-type');
+    const historyBodyEl = document.getElementById('history-body');
+
+    // 图表实例
+    let progressChart = null;
+    let typeChart = null;
+
+    // 加载训练历史
+    function loadTrainingHistory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const history = JSON.parse(raw);
+        return Array.isArray(history) ? history : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 加载当前用户
+    function loadCurrentUser() {
+      try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 格式化日期
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // 过滤训练历史
+    function filterHistory(history, timeRange, trainingType) {
+      const now = new Date();
+      const daysAgo = parseInt(timeRange, 10);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(now.getDate() - daysAgo);
+
+      return history.filter(item => {
+        // 时间范围过滤
+        if (timeRange !== 'all') {
+          const itemDate = new Date(item.ts);
+          if (itemDate < cutoffDate) return false;
+        }
+
+        // 训练类型过滤
+        if (trainingType !== 'all') {
+          // 这里简化处理，实际应该根据训练类型进行过滤
+          // 暂时返回所有类型
+        }
+
+        return true;
+      });
+    }
+
+    // 计算统计数据
+    function calculateStats(history) {
+      if (history.length === 0) {
+        return {
+          totalSessions: 0,
+          totalDuration: 0,
+          highestScore: 0,
+          averageScore: 0
+        };
+      }
+
+      const totalSessions = history.length;
+      const totalDuration = history.reduce((sum, item) => sum + (item.durationSec || 0), 0) / 60;
+      const scores = history.map(item => item.score || 0);
+      const highestScore = Math.max(...scores);
+      const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+
+      return {
+        totalSessions,
+        totalDuration: Math.round(totalDuration * 10) / 10,
+        highestScore,
+        averageScore: Math.round(averageScore * 10) / 10
+      };
+    }
+
+    // 渲染统计数据
+    function renderStats(stats) {
+      totalSessionsEl.textContent = stats.totalSessions;
+      totalDurationEl.textContent = stats.totalDuration;
+      highestScoreEl.textContent = stats.highestScore;
+      averageScoreEl.textContent = stats.averageScore;
+    }
+
+    // 渲染训练历史表格
+    function renderHistoryTable(history) {
+      if (history.length === 0) {
+        historyBodyEl.innerHTML = '<tr><td colspan="6" class="empty-state">暂无训练记录</td></tr>';
+        return;
+      }
+
+      const rows = history.slice().reverse().map(item => {
+        return `
+          <tr>
+            <td>${formatDate(item.ts)}</td>
+            <td>Gabor配对</td>
+            <td>${item.score || 0}</td>
+            <td>${item.durationSec || 0}秒</td>
+            <td>${item.mode === 'auto' ? '自动' : '手动'}</td>
+            <td>${item.maxK || 4}×${item.maxK || 4}</td>
+          </tr>
+        `;
+      }).join('');
+
+      historyBodyEl.innerHTML = rows;
+    }
+
+    // 渲染进度图表
+    function renderProgressChart(history) {
+      const ctx = document.getElementById('progress-chart').getContext('2d');
+
+      // 准备数据
+      const sortedHistory = history.slice().sort((a, b) => new Date(a.ts) - new Date(b.ts));
+      const labels = sortedHistory.map(item => formatDate(item.ts));
+      const scores = sortedHistory.map(item => item.score || 0);
+      const difficulties = sortedHistory.map(item => item.maxK || 4);
+
+      // 销毁旧图表
+      if (progressChart) {
+        progressChart.destroy();
+      }
+
+      // 创建新图表
+      progressChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '得分',
+              data: scores,
+              borderColor: '#4dabf7',
+              backgroundColor: 'rgba(77, 171, 247, 0.1)',
+              tension: 0.3,
+              fill: true
+            },
+            {
+              label: '最大难度',
+              data: difficulties,
+              borderColor: '#51cf66',
+              backgroundColor: 'rgba(81, 207, 102, 0.1)',
+              tension: 0.3,
+              fill: true,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: '得分'
+              }
+            },
+            y1: {
+              beginAtZero: false,
+              min: 4,
+              title: {
+                display: true,
+                text: '最大难度'
+              },
+              position: 'right',
+              grid: {
+                drawOnChartArea: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 渲染训练类型分布图表
+    function renderTypeChart(history) {
+      const ctx = document.getElementById('type-chart').getContext('2d');
+
+      // 统计训练类型
+      const typeCounts = {
+        'Gabor配对': history.length,
+        '闪烁Gabor': 0,
+        '对比辨别': 0,
+        '阅读清晰度': 0,
+        '眩光测试': 0,
+        '隧道识别': 0
+      };
+
+      // 准备数据
+      const labels = Object.keys(typeCounts);
+      const data = Object.values(typeCounts);
+
+      // 销毁旧图表
+      if (typeChart) {
+        typeChart.destroy();
+      }
+
+      // 创建新图表
+      typeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: [
+              '#4dabf7',
+              '#51cf66',
+              '#ffd43b',
+              '#ff6b6b',
+              '#9775fa',
+              '#fa5252'
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    // 更新所有数据和图表
+    function updateAll() {
+      const history = loadTrainingHistory();
+      const timeRange = timeRangeEl.value;
+      const trainingType = trainingTypeEl.value;
+      const filteredHistory = filterHistory(history, timeRange, trainingType);
+      const stats = calculateStats(filteredHistory);
+
+      renderStats(stats);
+      renderHistoryTable(filteredHistory);
+      renderProgressChart(filteredHistory);
+      renderTypeChart(filteredHistory);
+    }
+
+    // 事件监听器
+    timeRangeEl.addEventListener('change', updateAll);
+    trainingTypeEl.addEventListener('change', updateAll);
+
+    // 初始化
+    updateAll();
+
+  })();
+  </script>
+</body>
+</html>

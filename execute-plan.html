@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>执行训练计划</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --success: #34c759;
+      --warning: #ff9500;
+      --error: #ff3b30;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0;
+    }
+
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .menu-container {
+      position: relative;
+    }
+
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 1rem;
+    }
+
+    h3 {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin: 1rem 0 0.5rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .plan-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .plan-detail {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .plan-detail h3 {
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .plan-detail p {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 10px 0 15px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--accent);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .training-list {
+      margin-top: 20px;
+    }
+
+    .training-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border-left: 4px solid var(--accent);
+    }
+
+    .training-item.completed {
+      border-left-color: var(--success);
+      background-color: #f0f9f0;
+    }
+
+    .training-info h4 {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    .training-info p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .training-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #0077ed;
+    }
+
+    .btn-secondary {
+      background-color: #e0e0e0;
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background-color: #d0d0d0;
+    }
+
+    .btn-success {
+      background-color: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background-color: #2cc54f;
+    }
+
+    .status {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .status.success {
+      background-color: #e6f4ea;
+      color: #34c759;
+    }
+
+    .status.error {
+      background-color: #ffebe9;
+      color: #ff3b30;
+    }
+
+    .status.warning {
+      background-color: #fff3cd;
+      color: #ff9500;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      
+      .header-content {
+        padding: 0;
+      }
+      
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      
+      h1 {
+        font-size: 1.25rem;
+      }
+      
+      h2 {
+        font-size: 1rem;
+      }
+      
+      .plan-info {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .plan-detail {
+        min-width: 100%;
+      }
+      
+      .training-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .training-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      
+      .card {
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      
+      .training-item {
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+      
+      .btn {
+        padding: 7px 14px;
+        font-size: 13px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      
+      .container {
+        padding: 1rem 0.5rem;
+      }
+      
+      h1 {
+        font-size: 1.15rem;
+      }
+      
+      h2 {
+        font-size: 0.95rem;
+      }
+      
+      .card {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      
+      .training-item {
+        padding: 10px;
+        margin-bottom: 6px;
+      }
+      
+      .training-info h4 {
+        font-size: 15px;
+      }
+      
+      .training-info p {
+        font-size: 13px;
+      }
+      
+      .btn {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>执行训练计划</h1>
+    <p>按照计划进行训练，提升您的视力适应能力。</p>
+
+    <div class="status" id="status" style="display: none;"></div>
+
+    <div class="card" id="plan-card" style="display: none;">
+      <h2 id="plan-name">训练计划</h2>
+      <div class="plan-info">
+        <div class="plan-detail">
+          <h3>开始日期</h3>
+          <p id="start-date">2023-07-01</p>
+        </div>
+        <div class="plan-detail">
+          <h3>结束日期</h3>
+          <p id="end-date">2023-07-28</p>
+        </div>
+        <div class="plan-detail">
+          <h3>训练进度</h3>
+          <p id="progress-text">0/20 次训练</p>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="card" id="today-trainings" style="display: none;">
+      <h2>今日训练</h2>
+      <p id="today-date"></p>
+      <div class="training-list" id="training-list">
+        <!-- 训练项目将通过 JavaScript 动态添加 -->
+      </div>
+    </div>
+
+    <div class="card" id="no-plan" style="display: none;">
+      <h2>未选择训练计划</h2>
+      <p>您还没有选择训练计划，请先 <a href="plans.html">选择一个训练计划</a>。</p>
+    </div>
+
+    <div class="card" id="plan-completed" style="display: none;">
+      <h2>训练计划已完成</h2>
+      <p>恭喜您完成了所有训练！您可以 <a href="plans.html">选择新的训练计划</a> 继续提升。</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const CURRENT_USER_KEY = 'vision-training-current-user';
+      const TRAINING_PLAN_KEY = 'vision-training-plan';
+      const TRAINING_HISTORY_KEY = 'trainingHistory';
+      
+      const planCard = document.getElementById('plan-card');
+      const noPlanCard = document.getElementById('no-plan');
+      const planCompletedCard = document.getElementById('plan-completed');
+      const todayTrainingsCard = document.getElementById('today-trainings');
+      const planName = document.getElementById('plan-name');
+      const startDate = document.getElementById('start-date');
+      const endDate = document.getElementById('end-date');
+      const progressText = document.getElementById('progress-text');
+      const progressFill = document.getElementById('progress-fill');
+      const todayDate = document.getElementById('today-date');
+      const trainingList = document.getElementById('training-list');
+      const status = document.getElementById('status');
+
+      // 训练项目映射
+      const trainingMap = {
+        'gabor-match': {
+          name: 'Gabor 配对训练',
+          url: 'gabor-match-pilot.html'
+        },
+        'flicker-gabor': {
+          name: '闪烁 Gabor 焦点锁定',
+          url: 'flicker-gabor-focus.html'
+        },
+        'brightness': {
+          name: '对比辨别测试',
+          url: 'brightness-2afc.html'
+        },
+        'reading': {
+          name: '阅读清晰度测试',
+          url: 'reading-2afc.html'
+        },
+        'glare': {
+          name: '眩光/散射可视性测试',
+          url: 'glare-2afc.html'
+        },
+        'tunnel': {
+          name: '隧道远近切换识别',
+          url: 'tunnel-symbol-speed.html'
+        }
+      };
+
+      // 加载当前用户
+      function loadCurrentUser() {
+        try {
+          const raw = localStorage.getItem(CURRENT_USER_KEY);
+          if (!raw) return null;
+          const user = JSON.parse(raw);
+          if (!user || typeof user !== 'object') return null;
+          if (!user.id && !user.email) return null;
+          return user;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // 加载训练计划
+      function loadTrainingPlan() {
+        try {
+          const raw = localStorage.getItem(TRAINING_PLAN_KEY);
+          if (!raw) return null;
+          const plan = JSON.parse(raw);
+          const user = loadCurrentUser();
+          if (!plan) return null;
+          if (user && plan.userId && plan.userId !== user.id) return null;
+          return plan;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // 加载训练历史
+      function loadTrainingHistory() {
+        try {
+          const raw = localStorage.getItem(TRAINING_HISTORY_KEY);
+          if (!raw) return [];
+          return JSON.parse(raw);
+        } catch (e) {
+          return [];
+        }
+      }
+
+      // 保存训练历史
+      function saveTrainingHistory(history) {
+        try {
+          localStorage.setItem(TRAINING_HISTORY_KEY, JSON.stringify(history));
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // 保存训练计划
+      function saveTrainingPlan(plan) {
+        try {
+          localStorage.setItem(TRAINING_PLAN_KEY, JSON.stringify(plan));
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // 显示状态消息
+      function showStatus(message, isError = false, isWarning = false) {
+        status.textContent = message;
+        status.className = `status ${isError ? 'error' : isWarning ? 'warning' : 'success'}`;
+        status.style.display = 'block';
+        
+        // 3秒后隐藏
+        setTimeout(() => {
+          status.style.display = 'none';
+        }, 3000);
+      }
+
+      // 检查今天是否已完成训练
+      function isTrainingCompletedToday(trainingId) {
+        const history = loadTrainingHistory();
+        const today = new Date().toDateString();
+        return history.some(item => 
+          item.trainingId === trainingId && 
+          new Date(item.date).toDateString() === today
+        );
+      }
+
+      // 获取训练项目的分数
+      function getTrainingScore(trainingId) {
+        const history = loadTrainingHistory();
+        const today = new Date().toDateString();
+        const todayRecords = history.filter(item => 
+          item.trainingId === trainingId && 
+          new Date(item.date).toDateString() === today
+        );
+        
+        if (todayRecords.length > 0) {
+          // 按日期降序排序，获取最近的记录
+          todayRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+          return todayRecords[0].score || 'N/A';
+        }
+        return 'N/A';
+      }
+
+      // 标记训练为完成
+      function markTrainingComplete(trainingId) {
+        const history = loadTrainingHistory();
+        const today = new Date().toISOString();
+        const plan = loadTrainingPlan();
+        
+        if (!plan) {
+          showStatus('未找到训练计划', true);
+          return;
+        }
+        
+        // 检查今天是否已经记录了该训练
+        const existingIndex = history.findIndex(item => 
+          item.trainingId === trainingId && 
+          new Date(item.date).toDateString() === new Date().toDateString()
+        );
+        
+        if (existingIndex === -1) {
+          history.push({
+            trainingId: trainingId,
+            date: today,
+            planId: plan.id
+          });
+          
+          if (saveTrainingHistory(history)) {
+            // 更新计划进度
+            updatePlanProgress();
+            showStatus('训练已标记为完成');
+            renderTodayTrainings();
+          } else {
+            showStatus('保存训练记录失败', true);
+          }
+        } else {
+          showStatus('今天已经完成了这个训练', true);
+        }
+      }
+
+      // 更新计划进度
+      function updatePlanProgress() {
+        const history = loadTrainingHistory();
+        const plan = loadTrainingPlan();
+        
+        if (!plan) return;
+        
+        const planStart = new Date(plan.startDate);
+        const planEnd = new Date(plan.endDate);
+
+        // 计算完成的训练次数
+        const completedSessions = history.filter(item => 
+          item.planId === plan.id &&
+          item.date &&
+          new Date(item.date) >= planStart &&
+          new Date(item.date) <= planEnd
+        ).length;
+        
+        plan.completedSessions = completedSessions;
+        plan.progress.completedSessions = completedSessions;
+        plan.progress.totalSessions = plan.totalSessions;
+        
+        // 更新用户对象中的计划信息
+        const user = loadCurrentUser();
+        if (user) {
+          user.selectedPlan = plan;
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        }
+        
+        saveTrainingPlan(plan);
+        renderPlanInfo(plan);
+      }
+
+      // 渲染计划信息
+      function renderPlanInfo(plan) {
+        planName.textContent = plan.name;
+        startDate.textContent = new Date(plan.startDate).toLocaleDateString();
+        endDate.textContent = new Date(plan.endDate).toLocaleDateString();
+        
+        const progress = Math.min(Math.round((plan.completedSessions / plan.totalSessions) * 100), 100);
+        progressText.textContent = `${plan.completedSessions}/${plan.totalSessions} 次训练`;
+        progressFill.style.width = `${progress}%`;
+      }
+
+      // 渲染今日训练项目
+      function renderTodayTrainings() {
+        const plan = loadTrainingPlan();
+        if (!plan) return;
+        
+        todayDate.textContent = new Date().toLocaleDateString();
+        trainingList.innerHTML = '';
+        
+        if (plan.trainings && plan.trainings.length > 0) {
+          plan.trainings.forEach(training => {
+            const trainingInfo = trainingMap[training.id];
+            if (!trainingInfo) return;
+            
+            const isCompleted = isTrainingCompletedToday(training.id);
+            
+            const trainingItem = document.createElement('div');
+            trainingItem.className = `training-item ${isCompleted ? 'completed' : ''}`;
+            
+            trainingItem.innerHTML = `
+              <div class="training-info">
+                <h4>${trainingInfo.name}</h4>
+                <p>频率：${training.frequency} | 优先级：${training.priority === 'high' ? '高' : '中'} ${isCompleted ? ' | 分数：' + getTrainingScore(training.id) : ''}</p>
+              </div>
+              <div class="training-actions">
+                ${!isCompleted ? `
+                  <a href="${trainingInfo.url}" class="btn btn-primary">开始训练</a>
+                ` : `
+                  <button type="button" class="btn btn-success" disabled>已完成</button>
+                `}
+              </div>
+            `;
+            
+            trainingList.appendChild(trainingItem);
+          });
+        }
+      }
+
+      // 初始化
+      function init() {
+        const plan = loadTrainingPlan();
+        const user = loadCurrentUser();
+        
+        if (!user) {
+          window.location.replace('auth.html');
+          return;
+        }
+        
+        if (!plan) {
+          noPlanCard.style.display = 'block';
+          return;
+        }
+        
+        // 每次进入页面先按历史记录重算计划进度，确保顶部统计是最新值
+        updatePlanProgress();
+        const latestPlan = loadTrainingPlan();
+        if (!latestPlan) {
+          noPlanCard.style.display = 'block';
+          return;
+        }
+
+        // 检查计划是否已完成
+        const today = new Date();
+        const endDate = new Date(latestPlan.endDate);
+        const isCompleted = latestPlan.completedSessions >= latestPlan.totalSessions || today > endDate;
+        
+        if (isCompleted) {
+          planCompletedCard.style.display = 'block';
+          return;
+        }
+        
+        // 显示计划信息和今日训练
+        planCard.style.display = 'block';
+        todayTrainingsCard.style.display = 'block';
+        
+        renderPlanInfo(latestPlan);
+        renderTodayTrainings();
+      }
+
+      // 全局函数，用于标记训练完成
+      window.markTrainingComplete = markTrainingComplete;
+
+      // 初始化
+      init();
+    })();
+  </script>
+</body>
+</html>

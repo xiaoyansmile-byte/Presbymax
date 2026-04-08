@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阅读清晰度二选一（Demo 4）</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --ok: #34c759;
+      --bad: #ff3b30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+      max-width: 800px;
+    }
+    .hero h2 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      color: var(--text);
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .score-bar {
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      padding: 0.75rem 1.5rem;
+      background: var(--card-bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      width: 100%;
+      max-width: 400px;
+    }
+    .score-bar strong { color: var(--accent); }
+    .controls {
+      width: 100%;
+      max-width: 500px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    select, button {
+      font: inherit;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    select:focus, button:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    button.primary:hover:not(:disabled) { background: #0077ed; }
+    button:hover:not(:disabled) {
+      background-color: var(--hover-bg);
+    }
+    .patches {
+      display: flex;
+      gap: 1.5rem;
+      align-items: stretch;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 500px;
+    }
+    .patch {
+      flex: 1;
+      min-width: 150px;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--card-bg);
+      cursor: pointer;
+      transition: border-color 0.12s, transform 0.08s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .patch:hover { border-color: var(--accent); }
+    .patch:active { transform: scale(0.98); }
+    .patch.wrong-flash { animation: wrongPulse 0.35s ease; }
+    @keyframes wrongPulse {
+      0%, 100% { border-color: var(--border); }
+      50% { border-color: var(--bad); }
+    }
+    .text {
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-align: center;
+      line-height: 1.1;
+      user-select: none;
+      padding: 0 1rem;
+      transition: filter 80ms linear, opacity 80ms linear;
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    .actions button {
+      flex: 1;
+      min-width: 150px;
+    }
+    .status {
+      min-height: 1.5rem;
+      font-size: 0.95rem;
+      text-align: center;
+      margin-bottom: 1rem;
+      width: 100%;
+      max-width: 600px;
+      padding: 0.75rem;
+      background: var(--card-bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--bad); }
+    footer {
+      margin-top: auto;
+      padding: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+      width: 100%;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.5rem 1rem;
+      }
+      .hero {
+        margin-bottom: 1.5rem;
+      }
+      .hero h2 {
+        font-size: 1.5rem;
+      }
+      .hero p {
+        font-size: 1rem;
+      }
+      .score-bar {
+        padding: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+      .controls {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+      }
+      .controls label {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .patches {
+        gap: 1rem;
+      }
+      .actions {
+        flex-direction: column;
+        align-items: center;
+      }
+      .actions button {
+        width: 100%;
+        max-width: 200px;
+      }
+      .status {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      .hero h2 {
+        font-size: 1.3rem;
+      }
+      .hero p {
+        font-size: 0.9rem;
+      }
+      .score-bar {
+        font-size: 0.9rem;
+      }
+      .controls {
+        padding: 1rem;
+      }
+      .controls label {
+        font-size: 0.85rem;
+      }
+      .patch {
+        min-width: 140px;
+      }
+      .text {
+        padding: 0 0.75rem;
+      }
+      .status {
+        font-size: 0.9rem;
+        min-height: 1.4rem;
+      }
+      footer {
+        font-size: 0.75rem;
+        padding: 1.25rem;
+      }
+    }
+    
+    @media (max-width: 360px) {
+      .header h1 {
+        font-size: 0.9rem;
+      }
+      .menu-button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+      }
+      .container {
+        padding: 1rem 0.75rem;
+      }
+      .hero h2 {
+        font-size: 1.15rem;
+      }
+      .hero p {
+        font-size: 0.85rem;
+      }
+      .score-bar {
+        font-size: 0.85rem;
+        padding: 0.6rem;
+      }
+      .controls {
+        padding: 0.75rem;
+      }
+      .controls label {
+        font-size: 0.8rem;
+      }
+      .patch {
+        min-width: 120px;
+      }
+      .text {
+        padding: 0 0.5rem;
+        font-size: 16px !important;
+      }
+      .status {
+        font-size: 0.85rem;
+      }
+      footer {
+        font-size: 0.7rem;
+      }
+    }
+    
+    /* 针对触摸设备的优化 */
+    @media (hover: none) and (pointer: coarse) {
+      .patch {
+        border-width: 2px;
+      }
+      .patch:hover {
+        border-color: var(--border);
+      }
+      button {
+        padding: 0.6rem 0.8rem;
+      }
+      select {
+        padding: 0.6rem 0.8rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h2>阅读清晰度二选一（Demo 4）</h2>
+      <p>每题左右显示同一段文字内容：一侧“略模糊/对比下降”。请点击你认为<strong>更清晰可读</strong>的那一侧；答对后自动进入下一题。</p>
+    </div>
+
+    <div class="score-bar" aria-live="polite">
+      答对：<strong id="correct">0</strong> · 总计：<strong id="total">0</strong>
+    </div>
+
+    <div class="controls" aria-label="难度设置">
+      <label>
+        字号
+        <select id="fontSize">
+          <option value="22" selected>中</option>
+          <option value="18">偏小</option>
+          <option value="28">偏大</option>
+        </select>
+      </label>
+      <label>
+        失焦强度
+        <select id="blurLevel">
+          <option value="1.2" selected>轻</option>
+          <option value="2.6">中</option>
+          <option value="4.2">重</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="patches" role="group" aria-label="左右阅读清晰度比较">
+      <div class="patch" id="leftPatch" role="button" tabindex="0" aria-label="左侧，点击若更清晰可读">
+        <div class="text" id="leftText"></div>
+      </div>
+      <div class="patch" id="rightPatch" role="button" tabindex="0" aria-label="右侧，点击若更清晰可读">
+        <div class="text" id="rightText"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="primary" id="btnNew">新题目</button>
+      <button type="button" id="btnBackToPlan">返回计划</button>
+    </div>
+
+    <div class="status" id="status" aria-live="polite"></div>
+  </div>
+
+  <footer>辅助认知训练：左右仅“失焦/清晰度”代理变量不同（无时间限制）。</footer>
+
+  <script>
+(function () {
+  "use strict";
+
+  function mulberry32(seed) {
+    return function () {
+      let t = (seed += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const leftPatch = document.getElementById("leftPatch");
+  const rightPatch = document.getElementById("rightPatch");
+  const leftText = document.getElementById("leftText");
+  const rightText = document.getElementById("rightText");
+  const fontSizeSel = document.getElementById("fontSize");
+  const blurSel = document.getElementById("blurLevel");
+
+  const statusEl = document.getElementById("status");
+  const correctEl = document.getElementById("correct");
+  const totalEl = document.getElementById("total");
+  const btnNew = document.getElementById("btnNew");
+
+  const AUTO_NEXT_MS = 650;
+
+  const WORDS = [
+    "阅读清晰",
+    "焦点识别",
+    "视觉融合",
+    "更快适应",
+    "对比学习",
+    "清晰可读"
+  ];
+
+  let seed = (Date.now() % 0xffffffff) >>> 0;
+  /** 0 = 左更清晰, 1 = 右更清晰 */
+  let clearSide = 0;
+  let correct = 0;
+  let total = 0;
+  let locked = false;
+
+  function pickRandom(rnd, arr) {
+    return arr[Math.floor(rnd() * arr.length)];
+  }
+
+  function applyTextStyle(el, blurPx, dimAlpha) {
+    el.style.filter = blurPx > 0 ? ("blur(" + blurPx + "px)") : "none";
+    el.style.opacity = String(dimAlpha);
+  }
+
+  function nextTrial() {
+    locked = false;
+    const rnd = mulberry32((seed = ((seed * 1664525 + 1013904223) >>> 0)));
+
+    clearSide = rnd() < 0.5 ? 0 : 1;
+    const word = pickRandom(rnd, WORDS);
+    const blurPx = parseFloat(blurSel.value);
+    const fontPx = parseInt(fontSizeSel.value, 10);
+
+    leftText.textContent = word;
+    rightText.textContent = word;
+    leftText.style.fontSize = fontPx + "px";
+    rightText.style.fontSize = fontPx + "px";
+
+    // 模糊侧：轻微对比/清晰度衰减代理变量。
+    const dimAlphaBlur = 0.72;
+    const dimAlphaClear = 1.0;
+
+    if (clearSide === 0) {
+      applyTextStyle(leftText, 0, dimAlphaClear);
+      applyTextStyle(rightText, blurPx, dimAlphaBlur);
+    } else {
+      applyTextStyle(leftText, blurPx, dimAlphaBlur);
+      applyTextStyle(rightText, 0, dimAlphaClear);
+    }
+
+    statusEl.textContent = "请点击更清晰可读的一侧。";
+    statusEl.className = "status";
+  }
+
+  function pick(sideIdx) {
+    if (locked) return;
+    total += 1;
+    totalEl.textContent = String(total);
+
+    const ok = sideIdx === clearSide;
+    if (ok) {
+      correct += 1;
+      correctEl.textContent = String(correct);
+      statusEl.textContent = "正确。下一题…";
+      statusEl.className = "status ok";
+      locked = true;
+      setTimeout(nextTrial, AUTO_NEXT_MS);
+      return;
+    }
+
+    statusEl.textContent = "不对：请点击更清晰可读的一侧。";
+    statusEl.className = "status bad";
+
+    const el = sideIdx === 0 ? leftPatch : rightPatch;
+    el.classList.add("wrong-flash");
+    locked = true;
+    setTimeout(function () {
+      el.classList.remove("wrong-flash");
+      locked = false;
+    }, 350);
+  }
+
+  leftPatch.addEventListener("click", function () { pick(0); });
+  rightPatch.addEventListener("click", function () { pick(1); });
+  leftPatch.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(0); }
+  });
+  rightPatch.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(1); }
+  });
+
+  btnNew.addEventListener("click", function () {
+    seed = (Math.random() * 0xffffffff) >>> 0;
+    nextTrial();
+  });
+  fontSizeSel.addEventListener("change", function () {
+    seed = (Math.random() * 0xffffffff) >>> 0;
+    nextTrial();
+  });
+  blurSel.addEventListener("change", function () {
+    seed = (Math.random() * 0xffffffff) >>> 0;
+    nextTrial();
+  });
+
+  // 添加返回计划按钮的事件监听器
+  const currentUser = JSON.parse(localStorage.getItem('vision-training-current-user') || 'null');
+  const btnBackToPlan = document.getElementById("btnBackToPlan");
+  if (!currentUser) {
+    btnBackToPlan.style.display = "none";
+  }
+  btnBackToPlan.addEventListener("click", function () {
+    if (!currentUser) return;
+    // 保存训练结果到训练历史
+    const history = JSON.parse(localStorage.getItem('trainingHistory') || '[]');
+    const trainingId = 'reading';
+    const plan = JSON.parse(localStorage.getItem('vision-training-plan') || 'null');
+    
+    history.push({
+      trainingId: trainingId,
+      date: new Date().toISOString(),
+      planId: plan ? plan.id : null,
+      score: correct,
+      total: total,
+      accuracy: total > 0 ? Math.round((correct / total) * 100) : 0
+    });
+    
+    localStorage.setItem('trainingHistory', JSON.stringify(history));
+    
+    // 返回到执行计划页面
+    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+    if (typeof window.showTrainingResultThenRedirect === 'function') {
+      window.showTrainingResultThenRedirect({
+        title: '训练完成',
+        summary: `得分：${correct}\n总题数：${total}\n准确率：${accuracy}%`
+      });
+    } else {
+      window.location.href = 'execute-plan.html';
+    }
+  });
+
+  nextTrial();
+})();
+  </script>
+</body>
+</html>

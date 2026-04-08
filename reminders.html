@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>训练提醒 - 视力训练系统</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --success: #34c759;
+      --error: #ff3b30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p.lead {
+      color: var(--text-secondary);
+      margin: 0 0 1.75rem;
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+    .reminder-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .reminder-section {
+      margin-bottom: 2rem;
+    }
+    .reminder-section:last-child {
+      margin-bottom: 0;
+    }
+    .reminder-section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .reminder-section p {
+      margin: 0 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text);
+      font: inherit;
+      transition: border-color 0.2s ease;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      font: inherit;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: var(--hover-bg);
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    button.primary:hover:not(:disabled) { background: #0077ed; }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .status.success { background: rgba(81, 207, 102, 0.1); border: 1px solid #51cf66; color: #51cf66; }
+    .status.error { background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; }
+    .reminder-list {
+      margin-top: 1rem;
+    }
+    .reminder-item {
+      background: var(--hover-bg);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .reminder-item .time {
+      font-weight: 500;
+    }
+    .reminder-item .days {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    .reminder-item .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .reminder-item button {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+    .reminder-item button.delete {
+      background: transparent;
+      border-color: #ff6b6b;
+      color: #ff6b6b;
+    }
+    .reminder-item button.delete:hover {
+      background: rgba(255, 107, 107, 0.1);
+    }
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      p.lead {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      .reminder-container {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .reminder-section {
+        margin-bottom: 1.5rem;
+      }
+      .reminder-section h2 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .reminder-section p {
+        font-size: 0.8rem;
+        margin-bottom: 1.25rem;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+      .form-group {
+        margin-bottom: 0.75rem;
+      }
+      .form-group label {
+        font-size: 0.8rem;
+      }
+      .form-group input,
+      .form-group select {
+        padding: 0.6rem;
+        font-size: 0.9rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .reminder-item {
+        padding: 0.9rem;
+        margin-bottom: 0.6rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .reminder-item .actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      .reminder-item button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1rem 0.5rem;
+      }
+      h1 {
+        font-size: 1.15rem;
+      }
+      p.lead {
+        font-size: 0.85rem;
+      }
+      .reminder-container {
+        padding: 1.1rem;
+        margin-bottom: 1.25rem;
+      }
+      .reminder-section {
+        margin-bottom: 1.25rem;
+      }
+      .reminder-section h2 {
+        font-size: 0.95rem;
+      }
+      .form-group input,
+      .form-group select {
+        padding: 0.5rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+      }
+      .reminder-item {
+        padding: 0.8rem;
+        margin-bottom: 0.5rem;
+      }
+      .reminder-item button {
+        padding: 0.3rem 0.6rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>训练提醒</h1>
+    <p class="lead">设置训练提醒，帮助您保持规律的训练习惯。</p>
+
+    <div class="reminder-container">
+      <div class="reminder-section">
+        <h2>添加新提醒</h2>
+        <p>设置每日训练提醒时间，系统将在指定时间提醒您进行视力训练。</p>
+        <form id="reminder-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reminder-time">提醒时间</label>
+              <input type="time" id="reminder-time" required>
+            </div>
+            <div class="form-group">
+              <label for="reminder-days">重复</label>
+              <select id="reminder-days">
+                <option value="everyday">每天</option>
+                <option value="weekdays">工作日</option>
+                <option value="weekends">周末</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="primary">添加提醒</button>
+        </form>
+      </div>
+
+      <div class="reminder-section">
+        <h2>现有提醒</h2>
+        <p>管理您已设置的训练提醒。</p>
+        <div class="reminder-list" id="reminder-list">
+          <div class="reminder-item">
+            <div>
+              <div class="time">19:00</div>
+              <div class="days">每天</div>
+            </div>
+            <div class="actions">
+              <button type="button" class="delete">删除</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status" id="status" style="display: none;"></div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const REMINDERS_KEY = "vision-training-reminders";
+
+    // DOM 元素
+    const reminderForm = document.getElementById('reminder-form');
+    const reminderTime = document.getElementById('reminder-time');
+    const reminderDays = document.getElementById('reminder-days');
+    const reminderList = document.getElementById('reminder-list');
+    const statusEl = document.getElementById('status');
+
+    // 显示状态消息
+    function showStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${isError ? 'error' : 'success'}`;
+      statusEl.style.display = 'block';
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 3000);
+    }
+
+    // 加载提醒
+    function loadReminders() {
+      try {
+        const raw = localStorage.getItem(REMINDERS_KEY);
+        if (!raw) return [];
+        const reminders = JSON.parse(raw);
+        return Array.isArray(reminders) ? reminders : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 保存提醒
+    function saveReminders(reminders) {
+      try {
+        localStorage.setItem(REMINDERS_KEY, JSON.stringify(reminders));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 渲染提醒列表
+    function renderReminders() {
+      const reminders = loadReminders();
+      
+      if (reminders.length === 0) {
+        reminderList.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--muted);">暂无提醒</div>';
+        return;
+      }
+
+      const items = reminders.map((reminder, index) => {
+        return `
+          <div class="reminder-item">
+            <div>
+              <div class="time">${reminder.time}</div>
+              <div class="days">${getDaysText(reminder.days)}</div>
+            </div>
+            <div class="actions">
+              <button type="button" class="delete" data-index="${index}">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      reminderList.innerHTML = items;
+
+      // 添加删除事件监听器
+      document.querySelectorAll('.reminder-item .delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const index = parseInt(this.dataset.index, 10);
+          deleteReminder(index);
+        });
+      });
+    }
+
+    // 获取重复天数文本
+    function getDaysText(days) {
+      switch (days) {
+        case 'everyday': return '每天';
+        case 'weekdays': return '工作日';
+        case 'weekends': return '周末';
+        default: return '每天';
+      }
+    }
+
+    // 添加提醒
+    function addReminder(time, days) {
+      const reminders = loadReminders();
+      
+      // 检查是否已存在相同时间的提醒
+      const existing = reminders.find(r => r.time === time && r.days === days);
+      if (existing) {
+        showStatus('该提醒已存在', true);
+        return;
+      }
+      
+      reminders.push({ time, days, id: Date.now().toString() });
+      
+      if (saveReminders(reminders)) {
+        showStatus('提醒添加成功！');
+        renderReminders();
+      } else {
+        showStatus('提醒添加失败，请重试', true);
+      }
+    }
+
+    // 删除提醒
+    function deleteReminder(index) {
+      const reminders = loadReminders();
+      if (index >= 0 && index < reminders.length) {
+        reminders.splice(index, 1);
+        if (saveReminders(reminders)) {
+          showStatus('提醒已删除');
+          renderReminders();
+        } else {
+          showStatus('删除失败，请重试', true);
+        }
+      }
+    }
+
+    // 事件监听器
+    reminderForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const time = reminderTime.value;
+      const days = reminderDays.value;
+      addReminder(time, days);
+    });
+
+    // 初始化
+    renderReminders();
+
+  })();
+  </script>
+</body>
+</html>

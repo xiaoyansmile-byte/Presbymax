@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gabor 配对训练（Demo 1）</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --ok: #34c759;
+      --bad: #ff3b30;
+      --cell-border: #d2d2d7;
+      --target-frame: #ff9500;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      box-sizing: border-box;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .hero h2 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      color: var(--text);
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin: 0;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .app-layout {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      justify-content: center;
+    }
+    .sidebar {
+      width: 100%;
+      max-width: 400px;
+      flex-shrink: 1;
+      padding: 1rem;
+      background: var(--card-bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 0.875rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .sidebar h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+    }
+    .sidebar .row {
+      margin-bottom: 0.65rem;
+    }
+    .sidebar .row strong { color: var(--accent); }
+    .mode-row label {
+      display: block;
+      margin-bottom: 0.35rem;
+      cursor: pointer;
+    }
+    .timer-display {
+      font-variant-numeric: tabular-nums;
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--text);
+      min-width: 70px;
+      text-align: center;
+    }
+    .timer-display.idle { color: var(--text-secondary); font-size: 1.65rem; }
+    select, button {
+      font: inherit;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s ease;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    button.primary:hover:not(:disabled) { background: #0077ed; }
+    button.primary.is-ending {
+      background: var(--bad);
+      border-color: var(--bad);
+    }
+    button.primary.is-ending:hover:not(:disabled) { background: #ff453a; }
+    button.danger {
+      background: var(--bad);
+      border-color: var(--bad);
+      color: white;
+    }
+    button.danger:hover:not(:disabled) { background: #ff453a; }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border: 2px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+      font-weight: 500;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .mode-btn:hover {
+      border-color: var(--accent);
+      background: var(--hover-bg);
+    }
+    .mode-btn.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+    .full-width {
+      width: 100%;
+    }
+    .main-panel {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .graph-panel{
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      box-sizing: border-box;
+    }
+    .graph-timer{
+      width: 100%;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .status {
+      min-height: 1.5rem;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--bad); }
+    .grid-wrap {
+      display: block;
+      margin: 0 auto;
+      padding: 1rem;
+      background: transparent;
+      border-radius: 0;
+      border: none;
+      max-width: 100%;
+      overflow-x: hidden;
+      text-align: center;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .panel-actions {
+      width: 100%;
+      margin-top: 0.75rem;
+    }
+    #activeBtnSlot, #startBtnSlot {
+      width: 100%;
+    }
+    
+    @media (max-width: 768px) {
+      .grid-wrap {
+        padding: 0.5rem;
+      }
+    }
+    
+    .grid {
+      display: grid;
+      gap: 4px;
+      background: #f0f0f0;
+      padding: 4px;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin: 0 auto;
+      justify-content: center;
+    }
+    .cell {
+      position: relative;
+      border: 2px solid var(--cell-border);
+      border-radius: 4px;
+      cursor: pointer;
+      overflow: hidden;
+      background: #e0e0e0;
+      transition: border-color 0.12s;
+    }
+    .cell:hover { border-color: #b0b0b0; }
+    .cell.wrong-flash {
+      animation: wrongPulse 0.35s ease;
+    }
+    .cell.wrong-box {
+      outline: 3px solid var(--bad);
+      outline-offset: -3px;
+    }
+    @keyframes wrongPulse {
+      0%, 100% { border-color: var(--cell-border); }
+      50% { border-color: var(--bad); }
+    }
+    .cell.target-anchor {
+      outline: 3px solid var(--target-frame);
+      outline-offset: -3px;
+      z-index: 1;
+      cursor: default;
+      pointer-events: none;
+    }
+    .cell canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      vertical-align: middle;
+    }
+    .placeholder {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--text-secondary);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+    .history-block {
+      max-width: 1200px;
+      margin: 2rem auto 0;
+      padding: 1.5rem;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .history-block h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    #scoreChart {
+      display: block;
+      width: 100%;
+      max-width: 640px;
+      height: 160px;
+      margin-bottom: 1.5rem;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .history-table th, .history-table td {
+      padding: 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-table th { color: var(--text-secondary); font-weight: 500; }
+    .del-btn{
+      width: auto !important;
+      font: inherit;
+      padding: 0.25rem 0.5rem !important;
+      border-radius: 6px;
+      border: 1px solid var(--bad);
+      background: transparent;
+      color: var(--bad);
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.2s ease;
+    }
+    .del-btn:hover{
+      background: rgba(255, 59, 48, 0.1);
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-overlay[hidden] { display: none !important; }
+    .modal {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 22rem;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    .modal h3 { margin: 0 0 1rem; font-size: 1.2rem; font-weight: 600; color: var(--text); }
+    .modal p { margin: 0.5rem 0; color: var(--text-secondary); font-size: 0.9rem; }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 1.5rem;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      body.session-active .hero {
+        display: none;
+      }
+      body.session-active .container {
+        padding-top: 0.85rem;
+      }
+      body.session-active .sidebar {
+        margin-bottom: 0.75rem;
+      }
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.25rem 0.45rem;
+        box-sizing: border-box;
+      }
+      .hero {
+        margin-bottom: 2rem;
+      }
+      .hero h2 {
+        font-size: 1.4rem;
+      }
+      .hero p {
+        font-size: 1rem;
+      }
+      .app-layout {
+        flex-direction: column;
+        align-items: center;
+      }
+      .sidebar {
+        width: 100%;
+        max-width: none;
+        order: 0;
+        margin-bottom: 1.5rem;
+      }
+      .graph-panel {
+        order: 1;
+      }
+      .main-panel {
+        order: 2;
+      }
+      .graph-panel {
+        max-width: none;
+        padding: 1.5rem 0.9rem;
+        box-sizing: border-box;
+        align-items: stretch;
+      }
+      .grid-wrap {
+        padding: 0.3rem;
+      }
+      .timer-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .session-stats {
+        font-size: 0.75rem;
+        text-align: center;
+      }
+      .history-block {
+        overflow-x: auto;
+        padding: 1.25rem;
+        margin-top: 1.5rem;
+      }
+      .history-table {
+        min-width: 600px;
+      }
+      .grid {
+        gap: 3px;
+        padding: 3px;
+      }
+      .cell {
+        border-width: 1px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1rem 0.32rem;
+      }
+      .hero h2 {
+        font-size: 1.25rem;
+      }
+      .hero p {
+        font-size: 0.9rem;
+      }
+      .graph-panel {
+        padding: 1.1rem 0.62rem;
+      }
+      .sidebar {
+        padding: 0.75rem;
+      }
+      .placeholder {
+        padding: 2rem 0.75rem;
+        min-height: 150px;
+      }
+      .history-block {
+        padding: 1rem;
+      }
+      #scoreChart {
+        height: 140px;
+      }
+      .modal {
+        padding: 1.25rem;
+        max-width: 90%;
+      }
+      .grid {
+        gap: 2px;
+        padding: 2px;
+      }
+      .cell {
+        border-width: 1px;
+      }
+    }
+    
+    @media (max-width: 360px) {
+      .header h1 {
+        font-size: 0.9rem;
+      }
+      .menu-button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+      }
+      .container {
+        padding: 0.75rem 0.2rem;
+      }
+      .hero h2 {
+        font-size: 1.1rem;
+      }
+      .hero p {
+        font-size: 0.85rem;
+      }
+      .graph-panel {
+        padding: 0.9rem 0.5rem;
+      }
+      .sidebar {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+      }
+      .grid-wrap {
+        padding: 0.15rem;
+      }
+      .sidebar h2 {
+        font-size: 0.75rem;
+      }
+      .timer-display {
+        font-size: 1.4rem;
+      }
+      .timer-display.idle {
+        font-size: 1.4rem;
+      }
+      .status {
+        font-size: 0.85rem;
+        min-height: 1.3rem;
+      }
+      .placeholder {
+        padding: 1.5rem 0.5rem;
+        min-height: 120px;
+        font-size: 0.85rem;
+      }
+      #scoreChart {
+        height: 120px;
+      }
+      .modal {
+        padding: 1rem;
+        max-width: 95%;
+      }
+      .modal h3 {
+        font-size: 1.1rem;
+      }
+      .modal p {
+        font-size: 0.85rem;
+      }
+      footer {
+        font-size: 0.7rem;
+        margin-top: 1.5rem;
+      }
+    }
+    
+    /* 针对触摸设备的优化 */
+    @media (hover: none) and (pointer: coarse) {
+      .cell {
+        border-width: 2px;
+      }
+      .cell:hover {
+        border-color: var(--cell-border);
+      }
+      button {
+        padding: 0.5rem 0.75rem;
+      }
+      select {
+        padding: 0.5rem 0.75rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h2>Gabor 配对训练</h2>
+      <p>训练从4x4开始，配对成功1题得1分；每成功配对5题网格升一级，同时每题得分+1分</p>
+    </div>
+
+    <div class="app-layout">
+      <div class="main-panel">
+        <aside class="sidebar" aria-label="训练控制">
+          <div class="row">
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="button" class="mode-btn active" data-mode="fixed">固定难度</button>
+              <button type="button" class="mode-btn" data-mode="adaptive">动态模式</button>
+            </div>
+          </div>
+          <div class="row">
+            <div id="startBtnSlot">
+              <button type="button" class="primary full-width" id="btnStart">开始训练</button>
+            </div>
+          </div>
+        </aside>
+        
+        <div class="graph-panel" id="graphPanel">
+          <div class="graph-timer" aria-hidden="true">
+            <div style="font-size:1rem;color:var(--text-secondary);margin-bottom:0.1rem;">倒计时</div>
+            <div class="timer-display idle" id="timerDisplay">—</div>
+            <div class="session-stats" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem;">
+              <span>网格：<strong id="dispKInline">—</strong></span>
+              <span style="margin: 0 0.5rem;">|</span>
+              <span>成功：<strong id="dispSuccessInline">0</strong></span>
+              <span style="margin: 0 0.5rem;">|</span>
+              <span>得分：<strong id="dispScoreInline">0</strong></span>
+              <span style="margin: 0 0.5rem;">|</span>
+              <span>难度：<strong id="dispDifficultyInline">中等</strong></span>
+            </div>
+          </div>
+          <div class="status" id="status" aria-live="polite">请先点击「开始训练」。</div>
+
+          <div class="grid-wrap" id="gridWrap">
+            <div class="placeholder" id="gridPlaceholder">训练未开始</div>
+            <div class="grid" id="grid" style="display:none;"></div>
+          </div>
+          <div class="panel-actions" id="panelActions" hidden>
+            <div id="activeBtnSlot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="history-block">
+      <h2>历史记录（本机浏览器）</h2>
+      <canvas id="scoreChart" width="640" height="160" aria-label="得分曲线"></canvas>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>时间</th>
+            <th>模式</th>
+            <th>得分</th>
+            <th>时长</th>
+            <th>最大 K</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalEnd" hidden>
+    <div class="modal" role="dialog" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">训练结束</h3>
+      <p>得分：<strong id="modalScore" style="color:var(--accent);font-size:1.25rem;">0</strong></p>
+      <p id="modalDetail"></p>
+      <p style="margin-top:1.5rem;"><button type="button" class="primary" id="modalClose">确定</button></p>
+    </div>
+  </div>
+
+  <footer>提示格不可点击 · 数据存于 localStorage 键 gabor-training-history · 格间仅 θ / f / φ 变化</footer>
+
+  <script>
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "gabor-training-history";
+  const CURRENT_USER_KEY = "vision-training-current-user";
+  const SESSION_MS = 3 * 60 * 1000;
+  const AUTO_NEXT_MS = 850;
+  const K_MIN = 4;
+  const K_MAX = 8;
+  const LEVEL_EVERY = 5;
+
+  // 难度级别设置
+  const DIFFICULTY_LEVELS = {
+    easy: {
+      name: "简单",
+      contrast: 0.6,
+      cellSizeMultiplier: 1.2,
+      thetaLevels: [0, 90, 180, 270].map((d) => d * Math.PI / 180),
+      cyclesLevels: [2, 3, 4],
+      phiLevels: [0, 2, 4, 6].map((k) => (k * Math.PI) / 4)
+    },
+    medium: {
+      name: "中等",
+      contrast: 0.45,
+      cellSizeMultiplier: 1.0,
+      thetaLevels: [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((d) => d * Math.PI / 180),
+      cyclesLevels: [2, 2.5, 3, 4, 5, 6],
+      phiLevels: [0, 1, 2, 3, 4, 5, 6, 7].map((k) => (k * Math.PI) / 4)
+    },
+    hard: {
+      name: "困难",
+      contrast: 0.3,
+      cellSizeMultiplier: 0.8,
+      thetaLevels: [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345].map((d) => d * Math.PI / 180),
+      cyclesLevels: [2, 2.5, 3, 4, 5, 6, 7, 8],
+      phiLevels: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5].map((k) => (k * Math.PI) / 4)
+    }
+  };
+
+  const DEG = Math.PI / 180;
+  const THETA_LEVELS = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((d) => d * DEG);
+  const CYCLES_LEVELS = [2, 2.5, 3, 4, 5, 6];
+  const PHI_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => (k * Math.PI) / 4);
+  const COMBO_SPACE = THETA_LEVELS.length * CYCLES_LEVELS.length * PHI_LEVELS.length;
+
+  function tripleKey(t) {
+    return t.t + "|" + t.c + "|" + t.p;
+  }
+
+  function allTriples(difficulty = 'medium') {
+    const level = DIFFICULTY_LEVELS[difficulty] || DIFFICULTY_LEVELS.medium;
+    const out = [];
+    for (let ti = 0; ti < level.thetaLevels.length; ti++) {
+      for (let ci = 0; ci < level.cyclesLevels.length; ci++) {
+        for (let pi = 0; pi < level.phiLevels.length; pi++) {
+          out.push({ 
+            t: level.thetaLevels[ti], 
+            c: level.cyclesLevels[ci], 
+            p: level.phiLevels[pi] 
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  const ALL_TRIPLES = allTriples();
+
+  function shuffle(arr, rnd) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      const tmp = a[i];
+      a[i] = a[j];
+      a[j] = tmp;
+    }
+    return a;
+  }
+
+  function mulberry32(seed) {
+    return function () {
+      let t = (seed += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function generatePuzzle(K, rnd, difficulty = 'medium') {
+    const level = DIFFICULTY_LEVELS[difficulty] || DIFFICULTY_LEVELS.medium;
+    const triples = allTriples(difficulty);
+    const nCells = K * K;
+    const needUnique = nCells - 1;
+    if (needUnique > triples.length) throw new Error("组合空间不足");
+
+    const pool = shuffle(triples, rnd);
+    const target = pool[0];
+    const used = new Set([tripleKey(target)]);
+    const distractorTriples = [];
+    for (let i = 1; i < pool.length && distractorTriples.length < nCells - 2; i++) {
+      const k = tripleKey(pool[i]);
+      if (!used.has(k)) {
+        used.add(k);
+        distractorTriples.push(pool[i]);
+      }
+    }
+    if (distractorTriples.length < nCells - 2) throw new Error("干扰项不足");
+
+    const cells = [];
+    for (let i = 0; i < nCells - 2; i++) cells.push(distractorTriples[i]);
+    cells.push(target, target);
+    const shuffled = shuffle(cells.slice(), rnd);
+
+    const pairIndices = [];
+    for (let i = 0; i < shuffled.length; i++) {
+      if (tripleKey(shuffled[i]) === tripleKey(target)) pairIndices.push(i);
+    }
+    if (pairIndices.length !== 2) throw new Error("目标对数量错误");
+
+    return { triples: shuffled, pairIndices: /** @type {[number, number]} */ (pairIndices) };
+  }
+
+  function drawGabor(canvas, tr, cellSize, sigma, gamma, contrast, L0) {
+    const ctx = canvas.getContext("2d");
+    const w = cellSize;
+    const h = cellSize;
+    canvas.width = w;
+    canvas.height = h;
+    const img = ctx.createImageData(w, h);
+    const data = img.data;
+    const cos = Math.cos(tr.t);
+    const sin = Math.sin(tr.t);
+    const lambda = w / tr.c;
+    const twoPiOverL = (2 * Math.PI) / lambda;
+    const cx = (w - 1) / 2;
+    const cy = (h - 1) / 2;
+    const inv2s2 = 1 / (2 * sigma * sigma);
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const dx = x - cx;
+        const dy = y - cy;
+        const xp = dx * cos + dy * sin;
+        const yp = -dx * sin + dy * cos;
+        const env = Math.exp(-(xp * xp + gamma * gamma * yp * yp) * inv2s2);
+        const gr = Math.cos(twoPiOverL * xp + tr.p);
+        let L = L0 + contrast * L0 * env * gr;
+        if (L < 0) L = 0;
+        if (L > 1) L = 1;
+        const g = Math.round(L * 255);
+        const idx = (y * w + x) * 4;
+        data[idx] = g;
+        data[idx + 1] = g;
+        data[idx + 2] = g;
+        data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function needUnique(K) {
+    return K * K - 1;
+  }
+
+  const gridEl = document.getElementById("grid");
+  const gridWrap = document.getElementById("gridWrap");
+  const graphPanel = document.getElementById("graphPanel");
+  const panelActions = document.getElementById("panelActions");
+  const startBtnSlot = document.getElementById("startBtnSlot");
+  const activeBtnSlot = document.getElementById("activeBtnSlot");
+  const gridPlaceholder = document.getElementById("gridPlaceholder");
+  const statusEl = document.getElementById("status");
+  const btnStart = document.getElementById("btnStart");
+  const timerDisplay = document.getElementById("timerDisplay");
+  const dispK = document.getElementById("dispK");
+  const dispSuccess = document.getElementById("dispSuccess");
+  const dispScore = document.getElementById("dispScore");
+  const dispDifficulty = document.getElementById("dispDifficulty");
+  const dispKInline = document.getElementById("dispKInline");
+  const dispSuccessInline = document.getElementById("dispSuccessInline");
+  const dispScoreInline = document.getElementById("dispScoreInline");
+  const dispDifficultyInline = document.getElementById("dispDifficultyInline");
+  const modalEnd = document.getElementById("modalEnd");
+  const modalScore = document.getElementById("modalScore");
+  const modalDetail = document.getElementById("modalDetail");
+  const modalClose = document.getElementById("modalClose");
+  const historyBody = document.getElementById("historyBody");
+  const scoreChart = document.getElementById("scoreChart");
+
+  // 模式选择按钮
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  modeBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      modeBtns.forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+    });
+  });
+
+  // 历史记录删除：按钮使用事件委托
+  historyBody.addEventListener("click", function (ev) {
+    const btn = ev.target && ev.target.closest ? ev.target.closest(".del-btn") : null;
+    if (!btn) return;
+    const delIndex = parseInt(btn.getAttribute("data-del-index") || "", 10);
+    if (!Number.isFinite(delIndex)) return;
+    const arr = loadHistory();
+    if (delIndex < 0 || delIndex >= arr.length) return;
+    arr.splice(delIndex, 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    refreshHistoryUI();
+  });
+
+  let seed = Date.now() % 0xffffffff;
+  let currentMatchIndex = -1;
+  let advanceTimer = null;
+  let inputLocked = false;
+
+  let sessionActive = false;
+  /** @type {'manual'|'auto'|null} */
+  let trainingMode = null;
+  /** @type {'fixed'|'adaptive'|null} */
+  let difficultyMode = null;
+  let currentDifficulty = 'medium';
+  let sessionK = K_MIN;
+  let sessionSuccess = 0;
+  let sessionScore = 0;
+  let sessionMaxK = K_MIN;
+  let sessionStartTs = 0;
+  let sessionDeadline = 0;
+  let timerRaf = 0;
+  let sessionEnded = false;
+  let correctStreak = 0;
+  let incorrectStreak = 0;
+  let planResultSaved = false;
+
+  function getTrainingMode() {
+    return "auto";
+  }
+
+  function getDifficultyMode() {
+    const activeBtn = document.querySelector('.mode-btn.active');
+    return activeBtn ? activeBtn.getAttribute('data-mode') : 'fixed';
+  }
+
+  function updateToolbarSessionUI() {
+    const inSess = sessionActive;
+    const shouldMoveBtn = inSess && window.matchMedia("(max-width: 768px)").matches;
+    btnStart.disabled = false;
+    document.body.classList.toggle("session-active", inSess);
+    if (shouldMoveBtn) {
+      activeBtnSlot.appendChild(btnStart);
+      panelActions.hidden = false;
+    } else {
+      startBtnSlot.appendChild(btnStart);
+      panelActions.hidden = true;
+    }
+    modeBtns.forEach(function(btn) {
+      btn.disabled = inSess;
+    });
+    
+    // 更新按钮文本和样式
+    if (inSess) {
+      btnStart.textContent = '结束训练';
+      btnStart.classList.add('is-ending');
+    } else {
+      btnStart.textContent = '开始训练';
+      btnStart.classList.remove('is-ending');
+    }
+  }
+
+  function updateSessionStats() {
+    // 更新侧边栏的统计信息
+    if (dispK) dispK.textContent = sessionActive ? sessionK + '×' + sessionK : '—';
+    if (dispSuccess) dispSuccess.textContent = sessionActive ? String(sessionSuccess) : '0';
+    if (dispScore) dispScore.textContent = sessionActive ? String(sessionScore) : '0';
+    if (dispDifficulty) dispDifficulty.textContent = sessionActive ? DIFFICULTY_LEVELS[currentDifficulty].name : '中等';
+    
+    // 更新倒计时旁边的统计信息
+    dispKInline.textContent = sessionActive ? sessionK + '×' + sessionK : '—';
+    dispSuccessInline.textContent = sessionActive ? String(sessionSuccess) : '0';
+    dispScoreInline.textContent = sessionActive ? String(sessionScore) : '0';
+    dispDifficultyInline.textContent = sessionActive ? DIFFICULTY_LEVELS[currentDifficulty].name : '中等';
+  }
+
+  // 调整难度
+  function adjustDifficulty(correct) {
+    if (difficultyMode !== 'adaptive') return;
+
+    if (correct) {
+      correctStreak++;
+      incorrectStreak = 0;
+      
+      // 连续正确3次，提高难度
+      if (correctStreak >= 3) {
+        if (currentDifficulty === 'easy') {
+          currentDifficulty = 'medium';
+        } else if (currentDifficulty === 'medium') {
+          currentDifficulty = 'hard';
+        }
+        correctStreak = 0;
+        statusEl.textContent = "难度提升！"; 
+        statusEl.className = "status ok";
+      }
+    } else {
+      incorrectStreak++;
+      correctStreak = 0;
+      
+      // 连续错误2次，降低难度
+      if (incorrectStreak >= 2) {
+        if (currentDifficulty === 'hard') {
+          currentDifficulty = 'medium';
+        } else if (currentDifficulty === 'medium') {
+          currentDifficulty = 'easy';
+        }
+        incorrectStreak = 0;
+        statusEl.textContent = "难度降低。"; 
+        statusEl.className = "status bad";
+      }
+    }
+
+    updateSessionStats();
+  }
+
+  function formatTime(ms) {
+    if (ms <= 0) return "0:00";
+    const s = Math.ceil(ms / 1000);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ":" + (sec < 10 ? "0" : "") + sec;
+  }
+
+  function tickTimer() {
+    if (!sessionActive || trainingMode !== "auto") return;
+    const left = sessionDeadline - performance.now();
+    if (left <= 0) {
+      timerDisplay.textContent = "0:00";
+      timerDisplay.classList.remove("idle");
+      endSession("time");
+      return;
+    }
+    timerDisplay.textContent = formatTime(left);
+    timerDisplay.classList.remove("idle");
+    timerRaf = requestAnimationFrame(tickTimer);
+  }
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function hasLoggedInUser() {
+    try {
+      return Boolean(localStorage.getItem(CURRENT_USER_KEY));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function saveHistoryEntry(entry) {
+    const arr = loadHistory();
+    arr.push(entry);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    refreshHistoryUI();
+  }
+
+  function formatTs(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return ts;
+    const pad = (n) => (n < 10 ? "0" + n : "" + n);
+    return (
+      d.getFullYear() +
+      "-" + pad(d.getMonth() + 1) +
+      "-" + pad(d.getDate()) +
+      " " + pad(d.getHours()) +
+      ":" + pad(d.getMinutes()) +
+      ":" + pad(d.getSeconds())
+    );
+  }
+
+  function refreshHistoryUI() {
+    const arr = loadHistory();
+    historyBody.innerHTML = "";
+    arr.slice().reverse().forEach(function (rec, i) {
+      const tr = document.createElement("tr");
+      const idx = arr.length - i;
+      // 因为上面用了 reverse：i=0 对应原数组最后一项；因此原数组索引是 arr.length - 1 - i
+      const originalIndex = arr.length - 1 - i;
+      tr.innerHTML =
+        "<td>" +
+        idx +
+        "</td><td>" +
+        formatTs(rec.ts) +
+        "</td><td>" +
+        (rec.mode === "auto" ? "自动" : "手动") +
+        "</td><td>" +
+        (rec.score != null ? rec.score : "") +
+        "</td><td>" +
+        (rec.durationSec != null ? rec.durationSec + "s" : "") +
+        "</td><td>" +
+        (rec.maxK != null ? rec.maxK : "") +
+        "</td><td>" +
+        '<button type="button" class="del-btn" data-del-index="' +
+        originalIndex +
+        '">删除</button>' +
+        "</td>";
+      historyBody.appendChild(tr);
+    });
+
+    drawChart(arr);
+  }
+
+  function drawChart(arr) {
+    const ctx = scoreChart.getContext("2d");
+    const w = scoreChart.width;
+    const h = scoreChart.height;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    if (arr.length < 1) {
+      ctx.fillStyle = "#868e96";
+      ctx.font = "13px system-ui";
+      ctx.fillText("暂无记录", 12, 80);
+      return;
+    }
+    const scores = arr.map(function (r) {
+      return Number(r.score) || 0;
+    });
+    const maxS = Math.max.apply(null, scores.concat([1]));
+    const pad = 28;
+    ctx.strokeStyle = "#d2d2d7";
+    ctx.beginPath();
+    ctx.moveTo(pad, pad);
+    ctx.lineTo(pad, h - pad);
+    ctx.lineTo(w - pad, h - pad);
+    ctx.stroke();
+    ctx.strokeStyle = "#0071e3";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    scores.forEach(function (s, i) {
+      const x = pad + (i / Math.max(scores.length - 1, 1)) * (w - 2 * pad);
+      const y = h - pad - (s / maxS) * (h - 2 * pad);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.fillStyle = "#0071e3";
+    scores.forEach(function (s, i) {
+      const x = pad + (i / Math.max(scores.length - 1, 1)) * (w - 2 * pad);
+      const y = h - pad - (s / maxS) * (h - 2 * pad);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = "#868e96";
+    ctx.font = "11px system-ui";
+    ctx.fillText("0", 8, h - pad + 4);
+    ctx.fillText(String(maxS), 8, pad + 4);
+    ctx.fillText("第几次测试 →", w - 100, h - 8);
+  }
+
+  function clearAdvanceTimer() {
+    if (advanceTimer !== null) {
+      clearTimeout(advanceTimer);
+      advanceTimer = null;
+    }
+  }
+
+  function getGridCellSize(K) {
+    const gridRect = gridEl.getBoundingClientRect();
+    const gridStyles = window.getComputedStyle(gridEl);
+    const gridWidth = gridRect.width;
+    const paddingX = parseFloat(gridStyles.paddingLeft) + parseFloat(gridStyles.paddingRight);
+    const gap = parseFloat(gridStyles.columnGap || gridStyles.gap) || 0;
+    const usableWidth = gridWidth - paddingX - gap * (K - 1);
+    if (usableWidth > 0) {
+      return Math.max(24, Math.floor(usableWidth / K));
+    }
+
+    // 兜底：避免首帧布局未完成时出现 0 宽
+    return 48;
+  }
+
+  function configureGridLayout(K) {
+    gridEl.style.display = "grid";
+    gridEl.style.gridTemplateColumns = "repeat(" + K + ", 1fr)";
+    gridEl.style.width = "100%";
+    gridEl.style.maxWidth = "100%";
+    gridEl.style.gap = K >= 7 ? "2px" : K >= 5 ? "3px" : "4px";
+    gridEl.style.padding = K >= 7 ? "2px" : K >= 5 ? "3px" : "4px";
+    gridEl.style.background = "#f0f0f0";
+    gridEl.style.borderRadius = "6px";
+    gridWrap.style.overflow = "hidden";
+    gridWrap.style.textAlign = "center";
+    return getGridCellSize(K);
+  }
+
+  function stopTimerLoop() {
+    if (timerRaf) {
+      cancelAnimationFrame(timerRaf);
+      timerRaf = 0;
+    }
+  }
+
+  function focusTrainingPanel() {
+    if (!window.matchMedia("(max-width: 768px)").matches || !graphPanel) return;
+    const header = document.querySelector(".header");
+    const headerH = header ? header.getBoundingClientRect().height : 0;
+    const panelTop = graphPanel.getBoundingClientRect().top + window.scrollY;
+    const targetTop = Math.max(0, panelTop - headerH - 8);
+    window.scrollTo({ top: targetTop, behavior: "smooth" });
+  }
+
+  function renderPuzzle() {
+    clearAdvanceTimer();
+    if (!sessionActive || sessionEnded) return;
+
+    const K = sessionK;
+    const rnd = mulberry32(seed);
+
+    // 获取当前难度设置
+    const difficulty = difficultyMode === 'adaptive' ? currentDifficulty : 'medium';
+    const level = DIFFICULTY_LEVELS[difficulty];
+
+    // 检查组合空间是否足够
+    const triples = allTriples(difficulty);
+    if (K * K - 1 > triples.length) {
+      statusEl.textContent = "组合空间不足，请结束训练。";
+      statusEl.className = "status bad";
+      return;
+    }
+
+    const { triples: puzzleTriples, pairIndices } = generatePuzzle(K, rnd, difficulty);
+    const anchorIndex = rnd() < 0.5 ? pairIndices[0] : pairIndices[1];
+    const matchIndex = pairIndices[0] === anchorIndex ? pairIndices[1] : pairIndices[0];
+    currentMatchIndex = matchIndex;
+
+    gridPlaceholder.style.display = "none";
+    gridEl.innerHTML = "";
+    const cellSize = configureGridLayout(K);
+    gridEl.style.gridTemplateColumns = "repeat(" + K + ", " + cellSize + "px)";
+
+    statusEl.textContent = "请点击与金色方框内图案相同的另一格。";
+    statusEl.className = "status";
+
+    const sigma = cellSize / 5;
+    const gamma = 1;
+    const contrast = level.contrast;
+    const L0 = 0.5;
+
+    puzzleTriples.forEach(function (tr, i) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if (i === anchorIndex) {
+        cell.classList.add("target-anchor");
+        cell.setAttribute("aria-label", "配对提示格（无需点击）");
+      }
+      cell.style.width = cellSize + "px";
+      cell.style.height = cellSize + "px";
+      cell.dataset.index = String(i);
+      const cv = document.createElement("canvas");
+      cv.width = cellSize;
+      cv.height = cellSize;
+      cell.appendChild(cv);
+      drawGabor(cv, tr, cellSize, sigma, gamma, contrast, L0);
+      cell.addEventListener("click", onCellClick);
+      gridEl.appendChild(cell);
+    });
+
+    inputLocked = false;
+  }
+
+  function renderDemoGrid() {
+    const K = 4;
+    const rnd = mulberry32(seed);
+    
+    if (needUnique(K) > COMBO_SPACE) return;
+    const { triples, pairIndices } = generatePuzzle(K, rnd);
+    const anchorIndex = rnd() < 0.5 ? pairIndices[0] : pairIndices[1];
+
+    gridPlaceholder.style.display = "none";
+    gridEl.innerHTML = "";
+    const cellSize = configureGridLayout(K);
+    gridEl.style.gridTemplateColumns = "repeat(" + K + ", " + cellSize + "px)";
+    const sigma = cellSize / 5;
+    const gamma = 1;
+    const contrast = 0.45;
+    const L0 = 0.5;
+
+    triples.forEach(function (tr, i) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if (i === anchorIndex) {
+        cell.classList.add("target-anchor");
+      }
+      cell.style.width = cellSize + "px";
+      cell.style.height = cellSize + "px";
+      const cv = document.createElement("canvas");
+      cv.width = cellSize;
+      cv.height = cellSize;
+      cell.appendChild(cv);
+      drawGabor(cv, tr, cellSize, sigma, gamma, contrast, L0);
+      gridEl.appendChild(cell);
+    });
+  }
+
+  function onCellClick(ev) {
+    if (!sessionActive || sessionEnded || inputLocked) return;
+    if (trainingMode === "auto" && performance.now() >= sessionDeadline) {
+      endSession("time");
+      return;
+    }
+
+    const cell = ev.currentTarget;
+    const idx = parseInt(cell.dataset.index, 10);
+
+    if (idx === currentMatchIndex) {
+      inputLocked = true;
+      const pts = sessionK - 3;
+      sessionScore += pts;
+      sessionSuccess += 1;
+      if (sessionK > sessionMaxK) sessionMaxK = sessionK;
+
+      if (sessionSuccess % LEVEL_EVERY === 0) {
+        sessionK = Math.min(sessionK + 1, K_MAX);
+      }
+
+      updateSessionStats();
+
+      // 调整难度（正确）
+      adjustDifficulty(true);
+
+      statusEl.textContent = "配对成功！+" + pts + " 分 · 即将下一题…";
+      statusEl.className = "status ok";
+
+      advanceTimer = setTimeout(function () {
+        advanceTimer = null;
+        if (!sessionActive || sessionEnded) return;
+        if (trainingMode === "auto" && performance.now() >= sessionDeadline) {
+          endSession("time");
+          return;
+        }
+        seed = (Math.random() * 0xffffffff) >>> 0;
+        renderPuzzle();
+      }, AUTO_NEXT_MS);
+      return;
+    }
+
+    // 调整难度（错误）
+    adjustDifficulty(false);
+
+    statusEl.textContent = "图案不一致，请找出与金色方框内完全相同的另一格。";
+    statusEl.className = "status bad";
+    cell.classList.add("wrong-flash", "wrong-box");
+    window.setTimeout(function () {
+      cell.classList.remove("wrong-flash", "wrong-box");
+    }, 350);
+  }
+
+  function endSession(reason) {
+    if (!sessionActive) return;
+    sessionEnded = true;
+    sessionActive = false;
+    stopTimerLoop();
+    clearAdvanceTimer();
+    inputLocked = true;
+
+    timerDisplay.textContent = "—";
+    timerDisplay.classList.add("idle");
+
+    const durationMs = Date.now() - sessionStartTs;
+    const durationSec = Math.round(durationMs / 1000);
+
+    // 跳过记录的条件：
+    // 1）仅当是自动模式时，且未到 3 分钟就手动结束（btnEnd）才跳过记录。
+    const shouldSkipLog = reason === "manual" && trainingMode === "auto" && durationMs < SESSION_MS;
+
+    if (!shouldSkipLog) {
+      saveHistoryEntry({
+        ts: new Date().toISOString(),
+        score: sessionScore,
+        mode: trainingMode,
+        durationSec: durationSec,
+        maxK: sessionMaxK,
+      });
+    }
+
+    modalScore.textContent = String(sessionScore);
+    modalDetail.textContent =
+      "成功 " +
+      sessionSuccess +
+      " 题 · 最高网格 " +
+      sessionMaxK +
+      "×" +
+      sessionMaxK +
+      " · 时长 " +
+      durationSec +
+      "s" +
+      (reason === "time" ? "（到时）" : "");
+
+    modalEnd.hidden = false;
+
+    gridEl.innerHTML = "";
+    gridEl.style.display = "none";
+    gridPlaceholder.style.display = "flex";
+    gridPlaceholder.textContent = "训练已结束，可再次开始";
+
+    statusEl.textContent = "训练结束。";
+    statusEl.className = "status";
+
+    updateSessionStats();
+    updateToolbarSessionUI();
+
+    // 自动结束（到时）后自动返回执行计划页
+    if (reason === "time" && hasLoggedInUser()) {
+      savePlanResultAndReturn();
+    }
+  }
+
+  function startSession() {
+    trainingMode = "auto";
+    difficultyMode = getDifficultyMode();
+    currentDifficulty = 'medium';
+    correctStreak = 0;
+    incorrectStreak = 0;
+    
+    sessionActive = true;
+    sessionEnded = false;
+    sessionK = K_MIN;
+    sessionSuccess = 0;
+    sessionScore = 0;
+    sessionMaxK = K_MIN;
+    sessionStartTs = Date.now();
+    planResultSaved = false;
+
+    updateSessionStats();
+    updateToolbarSessionUI();
+
+    sessionDeadline = performance.now() + SESSION_MS;
+    timerDisplay.classList.remove("idle");
+    tickTimer();
+
+    seed = (Math.random() * 0xffffffff) >>> 0;
+    renderPuzzle();
+    requestAnimationFrame(function () {
+      focusTrainingPanel();
+    });
+  }
+
+  btnStart.addEventListener("click", function () {
+    if (sessionActive) {
+      endSession("manual");
+    } else {
+      startSession();
+    }
+  });
+
+  modalClose.addEventListener("click", function () {
+    modalEnd.hidden = true;
+    if (hasLoggedInUser()) {
+      savePlanResultAndReturn();
+    }
+  });
+
+  function savePlanResultAndReturn() {
+    if (!hasLoggedInUser()) return;
+    if (planResultSaved) return;
+    planResultSaved = true;
+
+    const history = JSON.parse(localStorage.getItem('trainingHistory') || '[]');
+    const trainingId = 'gabor-match';
+    const plan = JSON.parse(localStorage.getItem('vision-training-plan') || 'null');
+    
+    history.push({
+      trainingId: trainingId,
+      date: new Date().toISOString(),
+      planId: plan ? plan.id : null,
+      score: sessionScore,
+      duration: Math.round((Date.now() - sessionStartTs) / 1000),
+      maxK: sessionMaxK
+    });
+    
+    localStorage.setItem('trainingHistory', JSON.stringify(history));
+    if (typeof window.showTrainingResultThenRedirect === 'function') {
+      window.showTrainingResultThenRedirect({
+        title: '训练完成',
+        summary: `得分：${sessionScore}\n成功题数：${sessionSuccess}\n最高网格：${sessionMaxK}×${sessionMaxK}`
+      });
+    } else {
+      window.location.href = 'execute-plan.html';
+    }
+  }
+
+
+
+  updateToolbarSessionUI();
+  // 一次性清空旧历史记录（避免刷新/第二次训练时仍把历史抹掉）
+  const RESET_FLAG_KEY = "gabor-training-history-reset-v1";
+  try {
+    if (localStorage.getItem(RESET_FLAG_KEY) !== "true") {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(RESET_FLAG_KEY, "true");
+    }
+  } catch (e) {}
+  refreshHistoryUI();
+  // 初始页面显示 4×4 演示图形
+  renderDemoGrid();
+  
+  // 窗口大小变化时重新渲染网格
+  window.addEventListener('resize', function() {
+    updateToolbarSessionUI();
+    if (sessionActive && !sessionEnded) {
+      renderPuzzle();
+    } else {
+      renderDemoGrid();
+    }
+  });
+})();
+  </script>
+</body>
+</html>

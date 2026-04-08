@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>训练计划 - 视力训练系统</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --success: #34c759;
+      --error: #ff3b30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p.lead {
+      color: var(--text-secondary);
+      margin: 0 0 1.75rem;
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .plan-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .plan-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .plan-card h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .plan-card p {
+      margin: 0 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+    .plan-features {
+      margin: 1rem 0;
+    }
+    .plan-feature {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    .plan-feature::before {
+      content: "✓";
+      color: var(--success);
+      margin-right: 0.5rem;
+    }
+    .plan-duration {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+    button {
+      font: inherit;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: var(--hover-bg);
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    button.primary:hover:not(:disabled) { background: #0077ed; }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .status.success { background: rgba(81, 207, 102, 0.1); border: 1px solid #51cf66; color: #51cf66; }
+    .status.error { background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; }
+    .current-plan {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .current-plan h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+    }
+    .current-plan-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.9rem;
+    }
+    .current-plan-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .current-plan-title {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .current-plan-progress {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #change-plan-btn {
+      width: auto;
+      min-width: 104px;
+      max-width: 132px;
+      padding: 0.46rem 0.82rem;
+      font-size: 0.85rem;
+      line-height: 1.2;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .recommendation {
+      background: rgba(77, 171, 247, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .recommendation h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      p.lead {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      .plan-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .plan-card {
+        padding: 1.25rem;
+      }
+      .plan-card h2 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .plan-card p {
+        font-size: 0.8rem;
+        margin-bottom: 1.25rem;
+      }
+      .plan-duration {
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+      }
+      .plan-feature {
+        font-size: 0.8rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .current-plan {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .current-plan h2 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .current-plan-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.7rem;
+      }
+      .current-plan-title {
+        font-size: 0.95rem;
+      }
+      .current-plan-progress {
+        font-size: 0.8rem;
+      }
+      #change-plan-btn {
+        min-width: 84px;
+        max-width: 112px;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.8rem;
+        align-self: flex-start;
+      }
+      .recommendation {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .recommendation h2 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1rem 0.5rem;
+      }
+      h1 {
+        font-size: 1.15rem;
+      }
+      p.lead {
+        font-size: 0.85rem;
+      }
+      .plan-card {
+        padding: 1.1rem;
+      }
+      .plan-card h2 {
+        font-size: 0.95rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+      }
+      .current-plan {
+        padding: 1.1rem;
+      }
+      .current-plan-title {
+        font-size: 0.9rem;
+      }
+      .current-plan-progress {
+        font-size: 0.76rem;
+      }
+      #change-plan-btn {
+        min-width: 78px;
+        max-width: 98px;
+        padding: 0.36rem 0.6rem;
+        font-size: 0.76rem;
+      }
+      .recommendation {
+        padding: 1.1rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>训练计划</h1>
+    <p class="lead">根据您的视力状况和需求，选择适合的训练计划。</p>
+
+    <div class="recommendation">
+      <h2>推荐计划</h2>
+      <p>基于您的视力情况，我们推荐以下训练计划：</p>
+      <div class="plan-feature">术后恢复计划（ProsbyMax）</div>
+      <div class="plan-feature">多焦点接触镜适应计划</div>
+    </div>
+
+    <div class="current-plan" id="current-plan" style="display: none;">
+      <h2>当前训练计划</h2>
+      <div class="current-plan-content">
+        <div class="current-plan-info">
+          <div class="current-plan-title" id="current-plan-title">术后恢复计划（ProsbyMax）</div>
+          <div class="current-plan-progress" id="current-plan-progress">第 1 天，完成 0%</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+        <button type="button" id="change-plan-btn">更换计划</button>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 2rem; margin-bottom: 1rem;">可用训练计划</h2>
+    <div class="plan-grid">
+      <div class="plan-card">
+        <h2>术后恢复计划（ProsbyMax）</h2>
+        <div class="plan-duration">持续时间：4 周</div>
+        <p>专为 ProsbyMax 手术后的患者设计，帮助快速恢复和适应新的视力状态。</p>
+        <div class="plan-features">
+          <div class="plan-feature">每周 10 次训练，每次 15-20 分钟</div>
+          <div class="plan-feature">循序渐进的难度提升</div>
+          <div class="plan-feature">重点训练焦点切换能力</div>
+          <div class="plan-feature">高频训练强化视觉适应</div>
+        </div>
+        <div style="margin: 1rem 0;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem;">包含训练项目：</h3>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• Gabor 配对训练（5次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 隧道远近切换识别（5次/周）</li>
+          </ul>
+        </div>
+        <button type="button" class="primary select-plan" data-plan="post-surgery">选择此计划</button>
+      </div>
+
+      <div class="plan-card">
+        <h2>多焦点接触镜适应计划</h2>
+        <div class="plan-duration">持续时间：3 周</div>
+        <p>帮助佩戴多焦点接触镜的用户更快适应不同距离的视力切换。</p>
+        <div class="plan-features">
+          <div class="plan-feature">每周 4 次训练，每次 10-15 分钟</div>
+          <div class="plan-feature">模拟日常场景的视力训练</div>
+          <div class="plan-feature">重点训练近中远距离切换</div>
+          <div class="plan-feature">包含眩光适应训练</div>
+        </div>
+        <div style="margin: 1rem 0;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem;">包含训练项目：</h3>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• Gabor 配对训练（2次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 隧道远近切换识别（2次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 眩光/散射可视性测试（1次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 闪烁 Gabor 焦点锁定（1次/周）</li>
+          </ul>
+        </div>
+        <button type="button" class="primary select-plan" data-plan="multifocal-lenses">选择此计划</button>
+      </div>
+
+      <div class="plan-card">
+        <h2>对比敏感度提升计划</h2>
+        <div class="plan-duration">持续时间：2 周</div>
+        <p>专门针对对比敏感度不足的用户，提升在不同光照条件下的视力表现。</p>
+        <div class="plan-features">
+          <div class="plan-feature">每周 6 次训练，每次 10 分钟</div>
+          <div class="plan-feature">不同对比度级别的训练</div>
+          <div class="plan-feature">模拟低光照环境训练</div>
+          <div class="plan-feature">包含阅读清晰度训练</div>
+        </div>
+        <div style="margin: 1rem 0;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem;">包含训练项目：</h3>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 对比辨别测试（3次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 眩光/散射可视性测试（2次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 阅读清晰度测试（1次/周）</li>
+          </ul>
+        </div>
+        <button type="button" class="primary select-plan" data-plan="contrast-sensitivity">选择此计划</button>
+      </div>
+
+      <div class="plan-card">
+        <h2>焦点切换强化计划</h2>
+        <div class="plan-duration">持续时间：3 周</div>
+        <p>强化训练大脑在不同距离之间快速切换焦点的能力，提高视觉适应速度。</p>
+        <div class="plan-features">
+          <div class="plan-feature">每周 5 次训练，每次 15 分钟</div>
+          <div class="plan-feature">快速焦点切换训练</div>
+          <div class="plan-feature">不同距离的目标识别</div>
+          <div class="plan-feature">包含隧道视觉训练</div>
+        </div>
+        <div style="margin: 1rem 0;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem;">包含训练项目：</h3>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 隧道远近切换识别（2次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 闪烁 Gabor 焦点锁定（2次/周）</li>
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• Gabor 配对训练（1次/周）</li>
+          </ul>
+        </div>
+        <button type="button" class="primary select-plan" data-plan="focus-switching">选择此计划</button>
+      </div>
+    </div>
+
+    <div class="status" id="status" style="display: none;"></div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const CURRENT_USER_KEY = "vision-training-current-user";
+    const TRAINING_PLAN_KEY = "vision-training-plan";
+    const STORAGE_KEY = "vision-training-users";
+
+    // DOM 元素
+    const currentPlan = document.getElementById('current-plan');
+    const currentPlanTitle = document.getElementById('current-plan-title');
+    const currentPlanProgress = document.getElementById('current-plan-progress');
+    const progressFill = document.getElementById('progress-fill');
+    const changePlanBtn = document.getElementById('change-plan-btn');
+    const selectPlanBtns = document.querySelectorAll('.select-plan');
+    const status = document.getElementById('status');
+
+    // 训练计划数据
+    const trainingPlans = {
+      'post-surgery': {
+        name: '术后恢复计划（ProsbyMax）',
+        duration: 4, // 周
+        sessionsPerWeek: 10,
+        sessionDuration: '15-20分钟',
+        description: '专为 ProsbyMax 手术后的患者设计，帮助快速恢复和适应新的视力状态。',
+        trainings: [
+          { id: 'gabor-match', name: 'Gabor 配对训练', priority: 'high', frequency: '5次/周' },
+          { id: 'tunnel', name: '隧道远近切换识别', priority: 'high', frequency: '5次/周' }
+        ]
+      },
+      'multifocal-lenses': {
+        name: '多焦点接触镜适应计划',
+        duration: 3, // 周
+        sessionsPerWeek: 4,
+        sessionDuration: '10-15分钟',
+        description: '帮助佩戴多焦点接触镜的用户更快适应不同距离的视力切换。',
+        trainings: [
+          { id: 'gabor-match', name: 'Gabor 配对训练', priority: 'high', frequency: '2次/周' },
+          { id: 'tunnel', name: '隧道远近切换识别', priority: 'high', frequency: '2次/周' },
+          { id: 'glare', name: '眩光/散射可视性测试', priority: 'medium', frequency: '1次/周' },
+          { id: 'flicker-gabor', name: '闪烁 Gabor 焦点锁定', priority: 'medium', frequency: '1次/周' }
+        ]
+      },
+      'contrast-sensitivity': {
+        name: '对比敏感度提升计划',
+        duration: 2, // 周
+        sessionsPerWeek: 6,
+        sessionDuration: '10分钟',
+        description: '专门针对对比敏感度不足的用户，提升在不同光照条件下的视力表现。',
+        trainings: [
+          { id: 'brightness', name: '对比辨别测试', priority: 'high', frequency: '3次/周' },
+          { id: 'glare', name: '眩光/散射可视性测试', priority: 'high', frequency: '2次/周' },
+          { id: 'reading', name: '阅读清晰度测试', priority: 'medium', frequency: '1次/周' }
+        ]
+      },
+      'focus-switching': {
+        name: '焦点切换强化计划',
+        duration: 3, // 周
+        sessionsPerWeek: 5,
+        sessionDuration: '15分钟',
+        description: '强化训练大脑在不同距离之间快速切换焦点的能力，提高视觉适应速度。',
+        trainings: [
+          { id: 'tunnel', name: '隧道远近切换识别', priority: 'high', frequency: '2次/周' },
+          { id: 'flicker-gabor', name: '闪烁 Gabor 焦点锁定', priority: 'high', frequency: '2次/周' },
+          { id: 'gabor-match', name: 'Gabor 配对训练', priority: 'medium', frequency: '1次/周' }
+        ]
+      }
+    };
+
+    // 加载当前用户
+    function loadCurrentUser() {
+      try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        if (!raw) return null;
+        const user = JSON.parse(raw);
+        if (!user || typeof user !== 'object') return null;
+        if (!user.id && !user.email) return null;
+        return user;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 加载训练计划
+    function loadTrainingPlan() {
+      try {
+        const raw = localStorage.getItem(TRAINING_PLAN_KEY);
+        if (!raw) return null;
+        const plan = JSON.parse(raw);
+        const user = loadCurrentUser();
+        if (!plan) return null;
+        if (user && plan.userId && plan.userId !== user.id) return null;
+        return plan;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 保存训练计划
+    function saveTrainingPlan(plan) {
+      try {
+        localStorage.setItem(TRAINING_PLAN_KEY, JSON.stringify(plan));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 显示状态消息
+    function showStatus(message, isError = false) {
+      status.textContent = message;
+      status.className = `status ${isError ? 'error' : 'success'}`;
+      status.style.display = 'block';
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        status.style.display = 'none';
+      }, 3000);
+    }
+
+    // 加载训练历史
+    function loadTrainingHistory() {
+      try {
+        const raw = localStorage.getItem('trainingHistory');
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 更新当前计划显示
+    function updateCurrentPlanDisplay() {
+      const plan = loadTrainingPlan();
+      if (plan) {
+        currentPlan.style.display = 'block';
+        currentPlanTitle.textContent = plan.name;
+        
+        // 从训练历史中计算进度
+        const history = loadTrainingHistory();
+        const completedSessions = history.filter(item => 
+          item.planId === plan.id
+        ).length;
+        
+        const progress = Math.min(Math.round((completedSessions / plan.totalSessions) * 100), 100);
+        
+        // 计算天数
+        const startDate = new Date(plan.startDate);
+        const today = new Date();
+        const daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+        
+        currentPlanProgress.textContent = `第 ${daysPassed + 1} 天，完成 ${completedSessions}/${plan.totalSessions} 次训练 (${progress}%)`;
+        progressFill.style.width = `${progress}%`;
+      } else {
+        currentPlan.style.display = 'none';
+      }
+    }
+
+    // 选择训练计划
+    function selectPlan(planId) {
+      const user = loadCurrentUser();
+      if (!user) {
+        showStatus('请先登录后再选择训练计划', true);
+        return;
+      }
+
+      const plan = trainingPlans[planId];
+      if (!plan) {
+        showStatus('无效的训练计划', true);
+        return;
+      }
+
+      const trainingPlan = {
+        id: planId,
+        userId: user.id,
+        name: plan.name,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + plan.duration * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        duration: plan.duration,
+        sessionsPerWeek: plan.sessionsPerWeek,
+        sessionDuration: plan.sessionDuration,
+        trainings: plan.trainings,
+        completedSessions: 0,
+        totalSessions: plan.duration * plan.sessionsPerWeek,
+        progress: {
+          totalSessions: 0,
+          completedSessions: 0,
+          lastSessionDate: null,
+          streak: 0,
+          trainingProgress: plan.trainings.map(training => ({
+            id: training.id,
+            name: training.name,
+            completedSessions: 0,
+            totalSessions: 0
+          }))
+        }
+      };
+
+      if (saveTrainingPlan(trainingPlan)) {
+        // 同时更新用户对象中的计划信息
+        user.selectedPlan = trainingPlan;
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        
+        // 更新用户列表
+        const users = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const userIndex = users.findIndex(u => u.email === user.email);
+        if (userIndex !== -1) {
+          users[userIndex] = user;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+        }
+        
+        showStatus(`成功选择训练计划：${plan.name}`);
+        updateCurrentPlanDisplay();
+        
+        // 跳转到执行计划页面
+        setTimeout(() => {
+          window.location.href = 'execute-plan.html';
+        }, 1500);
+      } else {
+        showStatus('保存训练计划失败，请重试', true);
+      }
+    }
+
+    // 事件监听器
+    selectPlanBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const planId = btn.dataset.plan;
+        selectPlan(planId);
+      });
+    });
+
+    changePlanBtn.addEventListener('click', () => {
+      // 确认取消计划
+      if (confirm('确定要取消当前训练计划吗？所有相关的训练记录将被清除。')) {
+        const plan = loadTrainingPlan();
+        if (plan) {
+          // 清除相关的训练历史记录
+          const history = loadTrainingHistory();
+          const filteredHistory = history.filter(item => item.planId !== plan.id);
+          localStorage.setItem('trainingHistory', JSON.stringify(filteredHistory));
+        }
+        
+        // 保存空计划
+        saveTrainingPlan(null);
+        
+        // 更新用户对象中的计划信息
+        const user = loadCurrentUser();
+        if (user) {
+          user.selectedPlan = null;
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+          
+          // 更新用户列表
+          const users = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          const userIndex = users.findIndex(u => u.email === user.email);
+          if (userIndex !== -1) {
+            users[userIndex] = user;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+          }
+        }
+        
+        updateCurrentPlanDisplay();
+        showStatus('已取消当前训练计划');
+      }
+    });
+
+    // 初始化
+    const initUser = loadCurrentUser();
+    if (!initUser) {
+      window.location.replace('auth.html');
+      return;
+    }
+    updateCurrentPlanDisplay();
+
+  })();
+  </script>
+</body>
+</html>

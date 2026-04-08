@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>隧道远近切换识别（Demo 6）</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --ok: #34c759;
+      --mid: #ffcc00;
+      --bad: #ff3b30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      width: 100%;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p.hint {
+      margin: 0 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 60rem;
+      text-align: center;
+    }
+    .stats {
+      width: 100%;
+      max-width: 60rem;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+      text-align: center;
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .card strong {
+      display: block;
+      font-size: 1.05rem;
+      color: var(--text);
+      margin-top: 0.2rem;
+    }
+    .controls {
+      width: 100%;
+      max-width: 600px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      align-items: end;
+      justify-items: center;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .controls label {
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.35rem;
+      width: 100%;
+      max-width: 155px;
+      min-width: 0;
+    }
+    #startBtnTopSlot {
+      width: 100%;
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: center;
+    }
+    select, button {
+      font: inherit;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    select:hover, button:hover {
+      background-color: var(--hover-bg);
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    #btnStart {
+      width: auto;
+      min-width: 220px;
+      text-align: center;
+    }
+    button.primary:hover {
+      background: #0077ed;
+    }
+    .stage-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 600px;
+    }
+    .stage-actions {
+      width: 100%;
+      margin-top: 0.75rem;
+      display: flex;
+      justify-content: center;
+    }
+    #activeBtnSlot {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .bottom-actions {
+      width: 100%;
+      max-width: 600px;
+      margin: 0.5rem auto 1.25rem;
+    }
+    .bottom-actions button {
+      width: 100%;
+    }
+    .stage-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--hover-bg);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .stage-head strong {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    #tunnelCanvas {
+      width: min(84vw, 540px);
+      height: min(60vw, 390px);
+      display: block;
+      background: #f8f8f8;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+    }
+    .answers {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+    .answers button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 10px;
+      min-width: 0;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    .answers button:hover {
+      border-color: var(--accent);
+      background-color: var(--hover-bg);
+    }
+    .answers button canvas.answer-icon {
+      display: block;
+      width: 56px;
+      height: 56px;
+      background: var(--hover-bg);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .status {
+      min-height: 1.5rem;
+      font-size: 0.92rem;
+      text-align: center;
+      margin-bottom: 1rem;
+      max-width: 60rem;
+    }
+    .status.ok { color: var(--ok); }
+    .status.mid { color: var(--mid); }
+    .status.bad { color: var(--bad); }
+    footer {
+      margin-top: auto;
+      padding-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-align: center;
+      width: 100%;
+      padding-bottom: 1.5rem;
+    }
+    @media (max-width: 780px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.5rem 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      p.hint {
+        font-size: 0.9rem;
+        margin-bottom: 1.25rem;
+      }
+      .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin-bottom: 0.8rem;
+      }
+      .card {
+        padding: 0.6rem 0.7rem;
+        font-size: 0.8rem;
+      }
+      .card strong {
+        font-size: 1rem;
+      }
+      .controls {
+        padding: 0.75rem 0.9rem;
+        margin-bottom: 0.9rem;
+        gap: 0.8rem;
+      }
+      .controls label {
+        font-size: 0.8rem;
+      }
+      select, button {
+        padding: 0.34rem 0.62rem;
+        font-size: 0.85rem;
+      }
+      .stage-wrap {
+        padding: 10px;
+        margin-bottom: 0.85rem;
+      }
+      .answers {
+        gap: 0.75rem;
+        margin-bottom: 0.8rem;
+      }
+      .answers button {
+        padding: 6px 8px;
+      }
+      .status {
+        margin-bottom: 0.45rem;
+        font-size: 0.85rem;
+      }
+      footer {
+        padding-top: 0.7rem;
+        padding-bottom: 1rem;
+      }
+    }
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1.25rem 0.75rem;
+      }
+      h1 {
+        font-size: 1.15rem;
+      }
+      p.hint {
+        font-size: 0.85rem;
+      }
+      .stats {
+        gap: 0.5rem;
+      }
+      .card {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.75rem;
+      }
+      .card strong {
+        font-size: 0.9rem;
+      }
+      .controls {
+        gap: 0.6rem;
+      }
+      .controls label {
+        max-width: none;
+      }
+      #startBtnTopSlot {
+        grid-column: 1 / -1;
+      }
+      .stage-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.4rem;
+      }
+    }
+    @media (max-width: 780px) {
+      .stats {
+        display: none;
+      }
+      .container {
+        padding-top: 1rem;
+      }
+      body.round-active .hint {
+        display: none;
+      }
+      body.round-active .controls {
+        margin-bottom: 0.6rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>隧道远近切换识别（Demo 6）</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>隧道远近切换识别（Demo 6）</h1>
+    <p class="hint">符号为国际视力测试常用的 <strong>C 字（Landolt C）</strong>。请对照隧道中出现的图案，<strong>点击下方相同缺口方向的 C 字</strong>。符号从隧道远端向近处移动，<strong>出现位置每题随机</strong>。可分别调节<strong>字符移动</strong>与<strong>隧道行进</strong>快慢。每题根据反应时反馈 <strong>优 / 中 / 差</strong>，并统计一轮训练内各档数量。</p>
+
+    <div class="stats">
+    <div class="card">剩余时间<strong id="timeLeft">60s</strong></div>
+    <div class="card">总题数<strong id="totalCount">0</strong></div>
+    <div class="card">优<strong id="excellentCount">0</strong></div>
+    <div class="card">中<strong id="mediumCount">0</strong></div>
+    <div class="card">差<strong id="poorCount">0</strong></div>
+  </div>
+
+	  <div class="controls" aria-label="训练参数">
+    <label>时长
+      <select id="durationSel">
+        <option value="45">45秒</option>
+        <option value="60" selected>60秒</option>
+        <option value="90">90秒</option>
+      </select>
+    </label>
+    <label>字符移动
+      <select id="speedSel">
+        <option value="slow">慢</option>
+        <option value="mid" selected>中</option>
+        <option value="fast">快</option>
+      </select>
+    </label>
+    <label>隧道行进
+      <select id="tunnelSpeedSel" aria-label="隧道圈层扩张快慢">
+        <option value="0.045">慢</option>
+        <option value="0.08" selected>中</option>
+        <option value="0.13">快</option>
+      </select>
+    </label>
+	    <div id="startBtnTopSlot">
+	      <button type="button" class="primary" id="btnStart">开始一轮</button>
+	    </div>
+	  </div>
+
+	  <div class="stage-wrap">
+    <div class="stage-head" aria-live="polite">
+      <div>倒计时：<strong id="timeLeftInline">60.0s</strong></div>
+      <div>总 <strong id="totalCountInline">0</strong> · 优 <strong id="excellentCountInline">0</strong> · 中 <strong id="mediumCountInline">0</strong> · 差 <strong id="poorCountInline">0</strong></div>
+    </div>
+	    <canvas id="tunnelCanvas" width="540" height="390" aria-label="隧道训练画布"></canvas>
+	    <div class="stage-actions" id="stageActions" hidden>
+	      <div id="activeBtnSlot"></div>
+	    </div>
+	  </div>
+
+  <div class="answers" aria-label="选择缺口方向（图案与隧道内一致）">
+    <button type="button" data-dir="up" aria-label="开口朝上">
+      <canvas class="answer-icon" width="56" height="56" role="presentation"></canvas>
+    </button>
+    <button type="button" data-dir="down" aria-label="开口朝下">
+      <canvas class="answer-icon" width="56" height="56" role="presentation"></canvas>
+    </button>
+    <button type="button" data-dir="left" aria-label="开口朝左">
+      <canvas class="answer-icon" width="56" height="56" role="presentation"></canvas>
+    </button>
+    <button type="button" data-dir="right" aria-label="开口朝右">
+      <canvas class="answer-icon" width="56" height="56" role="presentation"></canvas>
+    </button>
+  </div>
+
+	  <div class="status" id="status" aria-live="polite">点击“开始一轮”后作答。</div>
+	  <div class="bottom-actions">
+	    <button type="button" id="btnBackToPlan">返回计划</button>
+	  </div>
+
+	  </div>
+
+  <footer>辅助训练 Demo：单屏透视深度线索模拟（非双眼视差临床测试）。</footer>
+
+  <script>
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("tunnelCanvas");
+  const CURRENT_USER_KEY = "vision-training-current-user";
+  const ctx = canvas.getContext("2d");
+  const timeLeftEl = document.getElementById("timeLeft");
+  const timeLeftInlineEl = document.getElementById("timeLeftInline");
+  const totalCountEl = document.getElementById("totalCount");
+  const excellentCountEl = document.getElementById("excellentCount");
+  const mediumCountEl = document.getElementById("mediumCount");
+  const poorCountEl = document.getElementById("poorCount");
+  const totalCountInlineEl = document.getElementById("totalCountInline");
+  const excellentCountInlineEl = document.getElementById("excellentCountInline");
+  const mediumCountInlineEl = document.getElementById("mediumCountInline");
+  const poorCountInlineEl = document.getElementById("poorCountInline");
+  const statusEl = document.getElementById("status");
+  const durationSel = document.getElementById("durationSel");
+  const speedSel = document.getElementById("speedSel");
+  const tunnelSpeedSel = document.getElementById("tunnelSpeedSel");
+  const btnStart = document.getElementById("btnStart");
+  const startBtnTopSlot = document.getElementById("startBtnTopSlot");
+  const stageActions = document.getElementById("stageActions");
+  const activeBtnSlot = document.getElementById("activeBtnSlot");
+  const stageWrap = document.querySelector(".stage-wrap");
+  const answerBtns = Array.from(document.querySelectorAll(".answers button"));
+
+  /** @typedef {'up'|'down'|'left'|'right'} Dir */
+  const DIRECTIONS = /** @type {Dir[]} */ (["up", "down", "left", "right"]);
+  const DIR_LABEL = { up: "上", down: "下", left: "左", right: "右" };
+  /** 缺口默认朝右（+X），再旋转到上/下/左/右 */
+  const DIR_RAD = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+  const GOOD_MS = 900;
+  const MID_MS = 1500;
+
+  let running = false;
+  let roundStartMs = 0;
+  let roundDurationMs = 60000;
+  let lastFrameMs = 0;
+  let rafId = 0;
+  let spawnCooldownMs = 260;
+  let spawnGapMs = 520;
+  let roundResultSaved = false;
+
+  let totalCount = 0;
+  let excellentCount = 0;
+  let mediumCount = 0;
+  let poorCount = 0;
+
+  /** @type {{dir:Dir,startMs:number,progress:number,durationMs:number,answered:boolean,rx:number,ry:number} | null} */
+  let trial = null;
+
+  function hasLoggedInUser() {
+    try {
+      return Boolean(localStorage.getItem(CURRENT_USER_KEY));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function updateStats() {
+    totalCountEl.textContent = String(totalCount);
+    excellentCountEl.textContent = String(excellentCount);
+    mediumCountEl.textContent = String(mediumCount);
+    poorCountEl.textContent = String(poorCount);
+    totalCountInlineEl.textContent = String(totalCount);
+    excellentCountInlineEl.textContent = String(excellentCount);
+    mediumCountInlineEl.textContent = String(mediumCount);
+    poorCountInlineEl.textContent = String(poorCount);
+  }
+
+  function roundSummaryText() {
+    return "本轮结束：优 " + excellentCount + " / 中 " + mediumCount + " / 差 " + poorCount;
+  }
+
+  function updateStartButtonUI() {
+    const shouldMoveBtn = running && window.matchMedia("(max-width: 780px)").matches;
+    document.body.classList.toggle("round-active", running);
+    if (shouldMoveBtn) {
+      activeBtnSlot.appendChild(btnStart);
+      stageActions.hidden = false;
+    } else {
+      startBtnTopSlot.appendChild(btnStart);
+      stageActions.hidden = true;
+    }
+    btnStart.textContent = running ? "结束本轮" : "开始一轮";
+  }
+
+  function focusStagePanel() {
+    if (!window.matchMedia("(max-width: 780px)").matches || !stageWrap) return;
+    const header = document.querySelector(".header");
+    const headerH = header ? header.getBoundingClientRect().height : 0;
+    const panelTop = stageWrap.getBoundingClientRect().top + window.scrollY;
+    const targetTop = Math.max(0, panelTop - headerH - 8);
+    window.scrollTo({ top: targetTop, behavior: "smooth" });
+  }
+
+  function speedParams(mode) {
+    if (mode === "fast") return { travelMs: 1300, spawnGapMs: 440 };
+    if (mode === "slow") return { travelMs: 2100, spawnGapMs: 700 };
+    return { travelMs: 1700, spawnGapMs: 560 };
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = "status " + cls;
+  }
+
+  function getTunnelSpeed() {
+    const v = parseFloat(tunnelSpeedSel.value);
+    return isNaN(v) ? 0.08 : v;
+  }
+
+  function drawTunnel(elapsedMs) {
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const tunnelSpeed = getTunnelSpeed();
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#0e1012";
+    ctx.fillRect(0, 0, w, h);
+
+    // 收敛线（透视）
+    ctx.strokeStyle = "rgba(120,130,145,0.16)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 16; i++) {
+      const t = (Math.PI * 2 * i) / 16;
+      const x = cx + Math.cos(t) * w * 0.7;
+      const y = cy + Math.sin(t) * h * 0.65;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(cx, cy);
+      ctx.stroke();
+    }
+
+    // 隧道圈层向外扩张，模拟前进（速度由「隧道行进」控制）
+    const shift = (elapsedMs * tunnelSpeed) % 46;
+    for (let i = 0; i < 12; i++) {
+      const r = 20 + i * 46 + shift;
+      const alpha = Math.max(0.03, 0.26 - i * 0.017);
+      ctx.strokeStyle = "rgba(170,180,195," + alpha.toFixed(3) + ")";
+      ctx.lineWidth = i % 3 === 0 ? 2 : 1;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r * 1.05, r * 0.8, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  /**
+   * 绘制 Landolt C 视标：默认缺口朝 +X（右），由旋转表示四向。
+   * @param {CanvasRenderingContext2D} c
+   * @param {number} unit 尺度单位
+   * @param {number} alpha
+   */
+  function drawLandoltC(c, unit, alpha) {
+    const radius = unit * 0.5;
+    const strokeW = unit * 0.22;
+    const gapAngle = Math.PI / 3;
+    const halfGap = gapAngle / 2;
+    c.strokeStyle = "rgba(255,255,255," + alpha.toFixed(3) + ")";
+    c.lineWidth = strokeW;
+    c.lineCap = "round";
+    c.shadowColor = "rgba(20,20,20,0.65)";
+    c.shadowBlur = unit * 0.08;
+    c.beginPath();
+    c.arc(0, 0, radius, halfGap, Math.PI * 2 - halfGap);
+    c.stroke();
+    c.shadowBlur = 0;
+    c.shadowColor = "transparent";
+  }
+
+  /** 底部按钮：绘制与隧道内相同画法的小 C 字图标 */
+  function renderAnswerIcon(canvasEl, dir) {
+    const c = canvasEl.getContext("2d");
+    const s = canvasEl.width;
+    c.clearRect(0, 0, s, s);
+    c.fillStyle = "#141517";
+    c.fillRect(0, 0, s, s);
+    c.save();
+    c.translate(s / 2, s / 2);
+    c.rotate(DIR_RAD[dir]);
+    drawLandoltC(c, s * 0.68, 1);
+    c.restore();
+  }
+
+  function drawTrialSymbol() {
+    if (!trial) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    const p = Math.max(0, Math.min(1, trial.progress));
+    const scale = 0.35 + p * 1.35;
+    // 远端偏移小、近端偏移大：沿随机方向从“隧道深处”移向屏幕前
+    const k = 0.06 + 0.94 * p;
+    const x = cx + trial.rx * k;
+    const y = cy + trial.ry * k + (0.5 - p) * 18;
+    const alpha = 0.45 + p * 0.55;
+    const unit = 14 + p * 52;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.rotate(DIR_RAD[trial.dir]);
+    drawLandoltC(ctx, unit, alpha);
+    ctx.restore();
+  }
+
+  function spawnTrial(nowMs) {
+    const dir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+    const s = speedParams(speedSel.value);
+    const w = canvas.width;
+    const h = canvas.height;
+    // 每题随机出现方向：最大横向/纵向偏移（像素）
+    const maxRx = w * 0.24;
+    const maxRy = h * 0.16;
+    const rx = (Math.random() * 2 - 1) * maxRx;
+    const ry = (Math.random() * 2 - 1) * maxRy;
+    trial = {
+      dir: dir,
+      startMs: nowMs,
+      progress: 0,
+      durationMs: s.travelMs,
+      answered: false,
+      rx: rx,
+      ry: ry
+    };
+    spawnGapMs = s.spawnGapMs;
+  }
+
+  function bucketByRt(rtMs) {
+    if (rtMs <= GOOD_MS) return "excellent";
+    if (rtMs <= MID_MS) return "medium";
+    return "poor";
+  }
+
+  function applyBucket(bucket, rtMs, correctDir) {
+    if (bucket === "excellent") {
+      excellentCount += 1;
+      setStatus("优 · 反应 " + rtMs + " ms", "ok");
+    } else if (bucket === "medium") {
+      mediumCount += 1;
+      setStatus("中 · 反应 " + rtMs + " ms", "mid");
+    } else {
+      poorCount += 1;
+      setStatus("差 · 反应 " + rtMs + " ms（正确缺口：" + DIR_LABEL[correctDir] + "）", "bad");
+    }
+    updateStats();
+  }
+
+  function onAnswer(dir, nowMs) {
+    if (!running || !trial || trial.answered) return;
+
+    totalCount += 1;
+    const rtMs = Math.max(1, Math.round(nowMs - trial.startMs));
+    const correct = dir === trial.dir;
+    let bucket = bucketByRt(rtMs);
+    if (!correct) bucket = "poor";
+
+    applyBucket(bucket, rtMs, trial.dir);
+    trial.answered = true;
+    trial = null;
+    spawnCooldownMs = spawnGapMs;
+  }
+
+  function step(nowMs) {
+    if (!running) return;
+    if (!lastFrameMs) lastFrameMs = nowMs;
+    const dt = nowMs - lastFrameMs;
+    lastFrameMs = nowMs;
+
+    const elapsedRound = nowMs - roundStartMs;
+    const remainMs = Math.max(0, roundDurationMs - elapsedRound);
+    const leftText = (remainMs / 1000).toFixed(1) + "s";
+    timeLeftEl.textContent = leftText;
+    timeLeftInlineEl.textContent = leftText;
+
+    drawTunnel(elapsedRound);
+
+    if (!trial) {
+      spawnCooldownMs -= dt;
+      if (spawnCooldownMs <= 0) {
+        spawnTrial(nowMs);
+      }
+    } else {
+      const t = (nowMs - trial.startMs) / trial.durationMs;
+      trial.progress = t;
+      drawTrialSymbol();
+      if (t >= 1 && !trial.answered) {
+        totalCount += 1;
+        applyBucket("poor", Math.round(trial.durationMs), trial.dir);
+        trial = null;
+        spawnCooldownMs = spawnGapMs;
+      }
+    }
+
+    if (remainMs <= 0) {
+      running = false;
+      trial = null;
+      setStatus(roundSummaryText(), "ok");
+      updateStartButtonUI();
+      // 自动结束后自动返回执行计划页
+      if (hasLoggedInUser()) {
+        saveRoundResultAndReturn();
+      }
+      return;
+    }
+
+    rafId = requestAnimationFrame(step);
+  }
+
+  function startRound() {
+    if (running) return;
+    // 每次开始都按“本轮统计”重置
+    totalCount = 0;
+    excellentCount = 0;
+    mediumCount = 0;
+    poorCount = 0;
+    updateStats();
+
+    roundDurationMs = parseInt(durationSel.value, 10) * 1000;
+    roundStartMs = performance.now();
+    lastFrameMs = 0;
+    spawnCooldownMs = 260;
+    trial = null;
+    running = true;
+    roundResultSaved = false;
+    timeLeftEl.textContent = (roundDurationMs / 1000).toFixed(1) + "s";
+    timeLeftInlineEl.textContent = (roundDurationMs / 1000).toFixed(1) + "s";
+    setStatus("训练进行中：请尽快选择 C 字缺口方向（上/下/左/右）。", "");
+    updateStartButtonUI();
+    rafId = requestAnimationFrame(step);
+    requestAnimationFrame(function () {
+      focusStagePanel();
+    });
+  }
+
+  function stopRound() {
+    if (!running) return;
+    cancelAnimationFrame(rafId);
+    running = false;
+    trial = null;
+    setStatus(roundSummaryText(), "ok");
+    updateStartButtonUI();
+  }
+
+  btnStart.addEventListener("click", function () {
+    if (running) {
+      stopRound();
+    } else {
+      startRound();
+    }
+  });
+  answerBtns.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      onAnswer(/** @type {Dir} */ (btn.dataset.dir), performance.now());
+    });
+  });
+
+  // 添加返回计划按钮的事件监听器
+  const btnBackToPlan = document.getElementById("btnBackToPlan");
+  if (!hasLoggedInUser()) {
+    btnBackToPlan.style.display = "none";
+  }
+  btnBackToPlan.addEventListener("click", function () {
+    saveRoundResultAndReturn();
+  });
+
+  function saveRoundResultAndReturn() {
+    if (!hasLoggedInUser()) return;
+    if (roundResultSaved) return;
+    roundResultSaved = true;
+
+    const history = JSON.parse(localStorage.getItem('trainingHistory') || '[]');
+    const trainingId = 'tunnel';
+    const plan = JSON.parse(localStorage.getItem('vision-training-plan') || 'null');
+    
+    history.push({
+      trainingId: trainingId,
+      date: new Date().toISOString(),
+      planId: plan ? plan.id : null,
+      score: excellentCount * 3 + mediumCount * 2, // 优3分，中2分，差不计分
+      total: totalCount,
+      excellent: excellentCount,
+      medium: mediumCount,
+      poor: poorCount,
+      accuracy: totalCount > 0 ? Math.round(((excellentCount + mediumCount) / totalCount) * 100) : 0
+    });
+    
+    localStorage.setItem('trainingHistory', JSON.stringify(history));
+    const score = excellentCount * 3 + mediumCount * 2;
+    const accuracy = totalCount > 0 ? Math.round(((excellentCount + mediumCount) / totalCount) * 100) : 0;
+    if (typeof window.showTrainingResultThenRedirect === 'function') {
+      window.showTrainingResultThenRedirect({
+        title: '训练完成',
+        summary: `得分：${score}\n总题数：${totalCount}\n准确率：${accuracy}%\n优秀/中等/较差：${excellentCount}/${mediumCount}/${poorCount}`
+      });
+    } else {
+      window.location.href = 'execute-plan.html';
+    }
+  }
+
+  timeLeftEl.textContent = durationSel.value + "s";
+  timeLeftInlineEl.textContent = durationSel.value + "s";
+  answerBtns.forEach(function (btn) {
+    const cv = btn.querySelector("canvas.answer-icon");
+    if (cv) renderAnswerIcon(cv, /** @type {Dir} */ (btn.dataset.dir));
+  });
+  updateStartButtonUI();
+  window.addEventListener("resize", function () {
+    updateStartButtonUI();
+  });
+  drawTunnel(0);
+})();
+  </script>
+</body>
+</html>

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>用户管理 - 视力训练系统</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --ok: #34c759;
+      --bad: #ff3b30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      max-width: 40rem;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .hero h2 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      color: var(--text);
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .auth-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .auth-tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s, color 0.2s;
+      font-weight: 500;
+    }
+    .auth-tab.active {
+      border-bottom-color: var(--accent);
+      color: var(--accent);
+    }
+    .auth-form {
+      display: none;
+    }
+    .auth-form.active {
+      display: block;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text);
+      font: inherit;
+      transition: all 0.2s ease;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+    }
+    .form-actions {
+      margin-top: 2rem;
+    }
+    button {
+      font: inherit;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    button.primary:hover:not(:disabled) { background: #0077ed; }
+    button:hover:not(:disabled) {
+      background-color: var(--hover-bg);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .status.success { background: rgba(52, 199, 89, 0.1); border: 1px solid var(--ok); color: var(--ok); }
+    .status.error { background: rgba(255, 59, 48, 0.1); border: 1px solid var(--bad); color: var(--bad); }
+    .profile-info {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: var(--hover-bg);
+      border-radius: 10px;
+    }
+    .profile-info h3 {
+      margin: 0 0 1.25rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .profile-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .profile-item .label {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .logout-btn {
+      margin-top: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.5rem 1rem;
+      }
+      .hero {
+        margin-bottom: 1.5rem;
+      }
+      .hero h2 {
+        font-size: 1.5rem;
+      }
+      .hero p {
+        font-size: 1rem;
+      }
+      .auth-container {
+        padding: 1.5rem;
+      }
+      .auth-tab {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-group label {
+        font-size: 0.85rem;
+      }
+      .form-group input {
+        padding: 0.6rem;
+        font-size: 0.9rem;
+      }
+      .form-actions {
+        margin-top: 1.5rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .profile-info {
+        margin-top: 1.5rem;
+        padding: 1.25rem;
+      }
+      .profile-info h3 {
+        font-size: 1rem;
+      }
+      .profile-item {
+        font-size: 0.85rem;
+      }
+      .logout-btn {
+        margin-top: 1.5rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      .hero h2 {
+        font-size: 1.3rem;
+      }
+      .hero p {
+        font-size: 0.9rem;
+      }
+      .auth-container {
+        padding: 1.25rem;
+      }
+      .auth-tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+      }
+      .form-group input {
+        padding: 0.5rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>ProsbyMax/MCL Vision Training</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h2>用户管理</h2>
+      <p>注册或登录以保存您的训练进度和历史记录。</p>
+    </div>
+
+    <div class="auth-container">
+      <div class="auth-tabs">
+        <div class="auth-tab active" data-tab="login">登录</div>
+        <div class="auth-tab" data-tab="register">注册</div>
+        <div class="auth-tab" data-tab="profile">个人资料</div>
+      </div>
+
+      <div class="auth-form active" id="login-form">
+        <div class="form-group">
+          <label for="login-email">邮箱</label>
+          <input type="email" id="login-email" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">密码</label>
+          <input type="password" id="login-password" required>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="primary" id="login-btn">登录</button>
+        </div>
+        <div class="status" id="login-status"></div>
+      </div>
+
+      <div class="auth-form" id="register-form">
+        <div class="form-group">
+          <label for="register-name">姓名</label>
+          <input type="text" id="register-name" required>
+        </div>
+        <div class="form-group">
+          <label for="register-email">邮箱</label>
+          <input type="email" id="register-email" required>
+        </div>
+        <div class="form-group">
+          <label for="register-password">密码</label>
+          <input type="password" id="register-password" required minlength="6">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="primary" id="register-btn">注册</button>
+        </div>
+        <div class="status" id="register-status"></div>
+      </div>
+
+      <div class="auth-form" id="profile-form">
+        <div class="profile-info">
+          <h3>个人信息</h3>
+          <div class="profile-item">
+            <span class="label">姓名：</span>
+            <span id="profile-name">未登录</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">邮箱：</span>
+            <span id="profile-email">未登录</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">注册时间：</span>
+            <span id="profile-reg-date">未登录</span>
+          </div>
+        </div>
+        <button type="button" class="logout-btn" id="logout-btn">退出登录</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const STORAGE_KEY = "vision-training-users";
+    const CURRENT_USER_KEY = "vision-training-current-user";
+
+    // DOM 元素
+    const userStatus = document.getElementById('user-status');
+    const authTabs = document.querySelectorAll('.auth-tab');
+    const authForms = document.querySelectorAll('.auth-form');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const profileForm = document.getElementById('profile-form');
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginStatus = document.getElementById('login-status');
+    const registerStatus = document.getElementById('register-status');
+    const profileName = document.getElementById('profile-name');
+    const profileEmail = document.getElementById('profile-email');
+    const profileRegDate = document.getElementById('profile-reg-date');
+
+    // 加载用户数据
+    function loadUsers() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const users = JSON.parse(raw);
+        return Array.isArray(users) ? users : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 保存用户数据
+    function saveUsers(users) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 保存当前用户
+    function saveCurrentUser(user) {
+      try {
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 加载当前用户
+    function loadCurrentUser() {
+      try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 清除当前用户
+    function clearCurrentUser() {
+      try {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 显示状态消息
+    function showStatus(element, message, isError = false) {
+      element.textContent = message;
+      element.className = `status ${isError ? 'error' : 'success'}`;
+      element.style.display = 'block';
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        element.style.display = 'none';
+      }, 3000);
+    }
+
+    // 切换标签
+    function switchTab(tabId) {
+      authTabs.forEach(tab => {
+        if (tab.dataset.tab === tabId) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+
+      authForms.forEach(form => {
+        if (form.id === tabId + '-form') {
+          form.classList.add('active');
+        } else {
+          form.classList.remove('active');
+        }
+      });
+
+      // 切到个人资料时强制刷新显示
+      if (tabId === 'profile') {
+        updateUserStatus();
+      }
+    }
+
+    // 更新用户状态显示
+    function updateUserStatus() {
+      const currentUser = loadCurrentUser();
+      if (currentUser) {
+        const displayName = currentUser.name || currentUser.username || '用户';
+        const displayEmail = currentUser.email || '未设置';
+        const displayRegDate = currentUser.registerDate
+          ? new Date(currentUser.registerDate).toLocaleString()
+          : '未知';
+
+        if (userStatus) userStatus.textContent = `欢迎，${displayName}`;
+        profileName.textContent = displayName;
+        profileEmail.textContent = displayEmail;
+        profileRegDate.textContent = displayRegDate;
+      } else {
+        if (userStatus) userStatus.textContent = '未登录';
+        profileName.textContent = '未登录';
+        profileEmail.textContent = '未登录';
+        profileRegDate.textContent = '未登录';
+      }
+    }
+
+    // 注册功能
+    function handleRegister() {
+      const name = document.getElementById('register-name').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+
+      if (!name || !email || !password) {
+        showStatus(registerStatus, '请填写所有必填字段', true);
+        return;
+      }
+
+      if (password.length < 6) {
+        showStatus(registerStatus, '密码长度至少为6位', true);
+        return;
+      }
+
+      const users = loadUsers();
+      const existingUser = users.find(user => user.email === email);
+
+      if (existingUser) {
+        showStatus(registerStatus, '该邮箱已被注册', true);
+        return;
+      }
+
+      const newUser = {
+        id: Date.now().toString(),
+        name,
+        email,
+        password,
+        registerDate: new Date().toISOString(),
+        trainingHistory: []
+      };
+
+      users.push(newUser);
+      if (saveUsers(users)) {
+        saveCurrentUser(newUser);
+        showStatus(registerStatus, '注册成功！');
+        updateUserStatus();
+        
+        // 跳转到训练计划页面
+        setTimeout(() => {
+          window.location.href = 'plans.html';
+        }, 1500);
+      } else {
+        showStatus(registerStatus, '注册失败，请重试', true);
+      }
+    }
+
+    // 登录功能
+    function handleLogin() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      if (!email || !password) {
+        showStatus(loginStatus, '请填写邮箱和密码', true);
+        return;
+      }
+
+      const users = loadUsers();
+      const user = users.find(user => user.email === email && user.password === password);
+
+      if (user) {
+        saveCurrentUser(user);
+        showStatus(loginStatus, '登录成功，正在跳转...');
+        updateUserStatus();
+        
+        // 检查当前用户是否已选择训练计划
+        let hasPlan = false;
+        try {
+          const planRaw = localStorage.getItem('vision-training-plan');
+          const plan = planRaw ? JSON.parse(planRaw) : null;
+          const userSelectedPlan = user && user.selectedPlan ? user.selectedPlan : null;
+
+          hasPlan = Boolean(
+            userSelectedPlan ||
+            (plan && plan.userId === user.id)
+          );
+        } catch (e) {
+          hasPlan = Boolean(user && user.selectedPlan);
+        }
+
+        const nextPage = hasPlan ? 'execute-plan.html' : 'plans.html';
+        // 主跳转
+        setTimeout(() => {
+          window.location.href = nextPage;
+        }, 500);
+        // 兜底跳转（防止某些浏览器状态下首个跳转被打断）
+        setTimeout(() => {
+          if (window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('auth.html')) {
+            window.location.replace(nextPage);
+          }
+        }, 1200);
+      } else {
+        showStatus(loginStatus, '邮箱或密码错误', true);
+      }
+    }
+
+    // 退出登录
+    function handleLogout() {
+      clearCurrentUser();
+      updateUserStatus();
+      switchTab('login');
+      showStatus(loginStatus, '已退出登录，即将返回首页');
+      setTimeout(() => {
+        window.location.replace('index.html');
+      }, 500);
+    }
+
+    // 事件监听器
+    authTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        switchTab(tab.dataset.tab);
+      });
+    });
+
+    loginBtn.addEventListener('click', handleLogin);
+    registerBtn.addEventListener('click', handleRegister);
+    logoutBtn.addEventListener('click', handleLogout);
+
+    // 初始化
+    updateUserStatus();
+
+  })();
+  </script>
+</body>
+</html>

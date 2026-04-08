@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>数据同步 - 视力训练系统</title>
+  <script src="menu.js?v=20260407c"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --hover-bg: #f2f2f7;
+      --success: #34c759;
+      --error: #ff3b30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    .menu-container {
+      position: relative;
+    }
+    .menu-button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-button:hover {
+      background-color: var(--hover-bg);
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+    .menu-container:hover .menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .menu-dropdown a {
+      display: block;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+    .menu-dropdown a:hover {
+      background-color: var(--hover-bg);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p.lead {
+      color: var(--text-secondary);
+      margin: 0 0 1.75rem;
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+    .sync-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .sync-section {
+      margin-bottom: 2rem;
+    }
+    .sync-section:last-child {
+      margin-bottom: 0;
+    }
+    .sync-section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .sync-section p {
+      margin: 0 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    button {
+      font: inherit;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: var(--hover-bg);
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    button.primary:hover:not(:disabled) { background: #0077ed; }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .status.success { background: rgba(81, 207, 102, 0.1); border: 1px solid #51cf66; color: #51cf66; }
+    .status.error { background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; }
+    .data-info {
+      background: var(--hover-bg);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .data-info h3 {
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+    }
+    .data-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    .data-item .label {
+      color: var(--text-secondary);
+    }
+    .data-item .value {
+      font-weight: 500;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .file-label {
+      font: inherit;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-block;
+      transition: background-color 0.2s ease;
+    }
+    .file-label:hover {
+      background-color: var(--hover-bg);
+    }
+    @media (max-width: 768px) {
+      .header {
+        padding: 0.75rem 1rem;
+      }
+      .header-content {
+        padding: 0;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .menu-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 1.25rem 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      p.lead {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      .sync-container {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .sync-section {
+        margin-bottom: 1.5rem;
+      }
+      .sync-section h2 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .sync-section p {
+        font-size: 0.8rem;
+        margin-bottom: 1.25rem;
+      }
+      .btn-group {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .file-label {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .data-info {
+        padding: 0.9rem;
+        margin-bottom: 1.25rem;
+      }
+      .data-info h3 {
+        font-size: 0.9rem;
+        margin-bottom: 0.6rem;
+      }
+      .data-item {
+        font-size: 0.8rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1rem;
+      }
+      .menu-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 1rem 0.5rem;
+      }
+      h1 {
+        font-size: 1.15rem;
+      }
+      p.lead {
+        font-size: 0.85rem;
+      }
+      .sync-container {
+        padding: 1.1rem;
+        margin-bottom: 1.25rem;
+      }
+      .sync-section {
+        margin-bottom: 1.25rem;
+      }
+      .sync-section h2 {
+        font-size: 0.95rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+      }
+      .file-label {
+        padding: 0.5rem 1rem;
+      }
+      .data-info {
+        padding: 0.8rem;
+        margin-bottom: 1.1rem;
+      }
+      .data-info h3 {
+        font-size: 0.85rem;
+      }
+      .data-item {
+        font-size: 0.75rem;
+      }
+    }
+  
+    /* Mobile readability baseline */
+     @media (max-width: 768px) {
+      body { font-size: 17px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 1rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 1rem !important;
+        min-height: 2.5rem;
+      }
+    }
+     @media (max-width: 480px) {
+      body { font-size: 16px; }
+      p, li, label, .status, .hint, .desc {
+        font-size: 0.98rem !important;
+        line-height: 1.6;
+      }
+      button, select, input, textarea {
+        font-size: 0.98rem !important;
+        min-height: 2.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>数据同步</h1>
+      <div id="menu-container"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>数据同步</h1>
+    <p class="lead">导出或导入训练数据，以便在不同设备之间同步训练进度。</p>
+
+    <div class="sync-container">
+    <div class="sync-section">
+      <h2>导出数据</h2>
+      <p>将您的训练数据导出为JSON文件，以便在其他设备上导入。</p>
+      <div class="data-info">
+        <h3>当前数据状态</h3>
+        <div class="data-item">
+          <span class="label">训练记录数：</span>
+          <span class="value" id="export-count">0</span>
+        </div>
+        <div class="data-item">
+          <span class="label">用户数据：</span>
+          <span class="value" id="export-user">无</span>
+        </div>
+        <div class="data-item">
+          <span class="label">训练计划：</span>
+          <span class="value" id="export-plan">无</span>
+        </div>
+      </div>
+      <button type="button" class="primary" id="export-btn">导出数据</button>
+    </div>
+
+    <div class="sync-section">
+      <h2>导入数据</h2>
+      <p>从JSON文件导入训练数据，覆盖当前设备上的数据。</p>
+      <p style="color: var(--bad);">警告：导入数据会覆盖当前设备上的所有训练数据，请谨慎操作。</p>
+      <div class="btn-group">
+        <label for="import-file" class="file-label">选择文件</label>
+        <input type="file" id="import-file" accept=".json">
+        <button type="button" class="primary" id="import-btn" disabled>导入数据</button>
+      </div>
+    </div>
+
+    <div class="sync-section">
+      <h2>数据管理</h2>
+      <p>管理您的训练数据，包括清除数据等操作。</p>
+      <div class="btn-group">
+        <button type="button" id="clear-btn">清除所有数据</button>
+        <button type="button" id="backup-btn">创建备份</button>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="status" id="status" style="display: none;"></div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // 存储键
+    const STORAGE_KEYS = {
+      trainingHistory: "gabor-training-history",
+      users: "vision-training-users",
+      currentUser: "vision-training-current-user",
+      trainingPlan: "vision-training-plan"
+    };
+
+    // DOM 元素
+    const exportBtn = document.getElementById('export-btn');
+    const importBtn = document.getElementById('import-btn');
+    const importFile = document.getElementById('import-file');
+    const clearBtn = document.getElementById('clear-btn');
+    const backupBtn = document.getElementById('backup-btn');
+    const statusEl = document.getElementById('status');
+    const exportCountEl = document.getElementById('export-count');
+    const exportUserEl = document.getElementById('export-user');
+    const exportPlanEl = document.getElementById('export-plan');
+
+    // 显示状态消息
+    function showStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${isError ? 'error' : 'success'}`;
+      statusEl.style.display = 'block';
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 3000);
+    }
+
+    // 加载所有数据
+    function loadAllData() {
+      const data = {};
+      
+      Object.keys(STORAGE_KEYS).forEach(key => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS[key]);
+          if (raw) {
+            data[key] = JSON.parse(raw);
+          } else {
+            data[key] = null;
+          }
+        } catch (e) {
+          data[key] = null;
+        }
+      });
+      
+      return data;
+    }
+
+    // 保存所有数据
+    function saveAllData(data) {
+      try {
+        Object.keys(STORAGE_KEYS).forEach(key => {
+          if (data[key] !== undefined) {
+            if (data[key] === null) {
+              localStorage.removeItem(STORAGE_KEYS[key]);
+            } else {
+              localStorage.setItem(STORAGE_KEYS[key], JSON.stringify(data[key]));
+            }
+          }
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 更新数据状态显示
+    function updateDataStatus() {
+      const data = loadAllData();
+      
+      // 训练记录数
+      const historyCount = data.trainingHistory ? data.trainingHistory.length : 0;
+      exportCountEl.textContent = historyCount;
+      
+      // 用户数据
+      const user = data.currentUser;
+      exportUserEl.textContent = user ? user.name : '无';
+      
+      // 训练计划
+      const plan = data.trainingPlan;
+      exportPlanEl.textContent = plan ? plan.name : '无';
+    }
+
+    // 导出数据
+    function exportData() {
+      const data = loadAllData();
+      const exportData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        data: data
+      };
+      
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vision-training-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showStatus('数据导出成功！');
+    }
+
+    // 导入数据
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const jsonString = e.target.result;
+          const importData = JSON.parse(jsonString);
+          
+          if (!importData.data) {
+            throw new Error('无效的数据格式');
+          }
+          
+          if (saveAllData(importData.data)) {
+            showStatus('数据导入成功！');
+            updateDataStatus();
+          } else {
+            showStatus('数据导入失败，请重试', true);
+          }
+        } catch (e) {
+          showStatus('无效的JSON文件', true);
+        }
+      };
+      reader.onerror = function() {
+        showStatus('文件读取失败', true);
+      };
+      reader.readAsText(file);
+    }
+
+    // 清除所有数据
+    function clearAllData() {
+      if (confirm('确定要清除所有训练数据吗？此操作不可恢复。')) {
+        Object.values(STORAGE_KEYS).forEach(key => {
+          localStorage.removeItem(key);
+        });
+        showStatus('所有数据已清除');
+        updateDataStatus();
+      }
+    }
+
+    // 创建备份
+    function createBackup() {
+      const data = loadAllData();
+      const backupData = {
+        version: '1.0',
+        backupDate: new Date().toISOString(),
+        data: data
+      };
+      
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vision-training-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showStatus('备份创建成功！');
+    }
+
+    // 事件监听器
+    exportBtn.addEventListener('click', exportData);
+    
+    importFile.addEventListener('change', function() {
+      importBtn.disabled = !this.files.length;
+    });
+    
+    importBtn.addEventListener('click', function() {
+      if (importFile.files.length) {
+        importData(importFile.files[0]);
+      }
+    });
+    
+    clearBtn.addEventListener('click', clearAllData);
+    backupBtn.addEventListener('click', createBackup);
+
+    // 初始化
+    updateDataStatus();
+
+  })();
+  </script>
+</body>
+</html>
