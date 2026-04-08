@@ -612,28 +612,37 @@
       }
 
       // 检查今天是否已完成训练
-      function isTrainingCompletedToday(trainingId) {
+      function isTrainingCompletedToday(trainingId, plan) {
         const history = loadTrainingHistory();
         const today = new Date().toDateString();
         return history.some(item => 
-          item.trainingId === trainingId && 
+          item.trainingId === trainingId &&
+          (!plan || item.planId === plan.id) &&
           new Date(item.date).toDateString() === today
         );
       }
 
-      // 获取训练项目的分数
-      function getTrainingScore(trainingId) {
+      // 获取训练项目在当前计划周期内的最高分
+      function getTrainingBestScore(trainingId, plan) {
         const history = loadTrainingHistory();
-        const today = new Date().toDateString();
-        const todayRecords = history.filter(item => 
-          item.trainingId === trainingId && 
-          new Date(item.date).toDateString() === today
-        );
-        
-        if (todayRecords.length > 0) {
-          // 按日期降序排序，获取最近的记录
-          todayRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-          return todayRecords[0].score || 'N/A';
+        const planStart = plan ? new Date(plan.startDate) : null;
+        const planEnd = plan ? new Date(plan.endDate) : null;
+        const records = history.filter(item => {
+          if (item.trainingId !== trainingId) return false;
+          if (!item.date) return false;
+          const d = new Date(item.date);
+          if (plan && item.planId !== plan.id) return false;
+          if (planStart && d < planStart) return false;
+          if (planEnd && d > planEnd) return false;
+          return true;
+        });
+
+        const numericScores = records
+          .map(item => Number(item.score))
+          .filter(score => Number.isFinite(score));
+
+        if (numericScores.length > 0) {
+          return Math.max(...numericScores);
         }
         return 'N/A';
       }
@@ -732,7 +741,8 @@
             const trainingInfo = trainingMap[training.id];
             if (!trainingInfo) return;
             
-            const isCompleted = isTrainingCompletedToday(training.id);
+            const isCompleted = isTrainingCompletedToday(training.id, plan);
+            const bestScore = getTrainingBestScore(training.id, plan);
             
             const trainingItem = document.createElement('div');
             trainingItem.className = `training-item ${isCompleted ? 'completed' : ''}`;
@@ -740,12 +750,13 @@
             trainingItem.innerHTML = `
               <div class="training-info">
                 <h4>${trainingInfo.name}</h4>
-                <p>频率：${training.frequency} | 优先级：${training.priority === 'high' ? '高' : '中'} ${isCompleted ? ' | 分数：' + getTrainingScore(training.id) : ''}</p>
+                <p>频率：${training.frequency} | 优先级：${training.priority === 'high' ? '高' : '中'} | 最高分：${bestScore}</p>
               </div>
               <div class="training-actions">
                 ${!isCompleted ? `
                   <a href="${trainingInfo.url}" class="btn btn-primary">开始训练</a>
                 ` : `
+                  <a href="${trainingInfo.url}" class="btn btn-secondary">重新训练</a>
                   <button type="button" class="btn btn-success" disabled>已完成</button>
                 `}
               </div>

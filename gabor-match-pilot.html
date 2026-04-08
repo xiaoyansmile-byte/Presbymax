@@ -261,10 +261,14 @@
       margin-bottom: 1rem;
     }
     .status {
-      min-height: 1.5rem;
+      height: 1.8rem;
+      line-height: 1.8rem;
       font-size: 0.9rem;
       margin-bottom: 1rem;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .status.ok { color: var(--ok); }
     .status.bad { color: var(--bad); }
@@ -1399,7 +1403,7 @@
       // 调整难度（正确）
       adjustDifficulty(true);
 
-      statusEl.textContent = "配对成功！+" + pts + " 分 · 即将下一题…";
+      statusEl.textContent = "配对成功（+" + pts + "分）";
       statusEl.className = "status ok";
 
       advanceTimer = setTimeout(function () {
@@ -1418,7 +1422,7 @@
     // 调整难度（错误）
     adjustDifficulty(false);
 
-    statusEl.textContent = "图案不一致，请找出与金色方框内完全相同的另一格。";
+    statusEl.textContent = "配对失败，请重试";
     statusEl.className = "status bad";
     cell.classList.add("wrong-flash", "wrong-box");
     window.setTimeout(function () {
