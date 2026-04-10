@@ -267,11 +267,8 @@
         touch-action: none;
       }
 
-      .panel {
-        min-width: 0;
-        max-width: min(90vw, 308px);
-        padding: 6px 8px;
-        border-radius: 9px;
+      .controls {
+        display: none;
       }
 
       .hud {
@@ -279,34 +276,61 @@
         gap: 8px;
         top: 8px;
         left: 8px;
-        right: auto;
+        right: 8px;
+      }
+
+      .panel {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        padding: 8px 10px;
+        border-radius: 10px;
       }
 
       .panel h1 {
-        margin-bottom: 3px;
-        font-size: 11px;
+        margin-bottom: 4px;
+        font-size: 12px;
       }
 
       .row {
-        gap: 6px;
-        margin: 1px 0;
-        font-size: 10.5px;
-        line-height: 1.2;
+        gap: 8px;
+        margin: 2px 0;
+        font-size: 11.5px;
+        line-height: 1.3;
       }
 
       .value {
-        font-size: 13px;
+        font-size: 14px;
       }
 
       .ui-btn {
-        font-size: 10.5px;
-        padding: 3px 7px;
-        min-height: 26px;
-        border-radius: 7px;
+        font-size: 11px;
+        padding: 4px 8px;
+        min-height: 28px;
+        border-radius: 8px;
       }
 
       .progress-wrap {
         margin-top: 3px;
+      }
+
+      .stats-panel .row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px 8px;
+        align-items: center;
+      }
+
+      .progress-panel .row {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr auto;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .stats-panel .row > span,
+      .progress-panel .row > span {
+        white-space: nowrap;
       }
 
       .mini-panel,
@@ -426,7 +450,7 @@
         playerLane: 0,
         laneVelocity: 0,
         keys: { left: false, right: false },
-        touchDrive: { active: false, pointerId: null },
+        touchDrive: { active: false, pointerId: null, startX: 0, startLane: 0, targetLane: 0 },
         obstacles: [],
         rewards: [],
         obstacleSpawn: 0,
@@ -839,6 +863,13 @@
       }
 
       function updatePlayer(dt) {
+        if (state.touchDrive.active && isCoarseInput()) {
+          const smoothFactor = 1 - Math.exp(-17 * dt);
+          state.playerLane = lerp(state.playerLane, state.touchDrive.targetLane, smoothFactor);
+          state.laneVelocity = 0;
+          return;
+        }
+
         const accel = 10.5;
         const friction = 3.1;
         if (state.keys.left) state.laneVelocity -= accel * dt;
@@ -902,7 +933,10 @@
 
         if (state.obstacleSpawn <= 0) {
           spawnObstacle();
-          state.obstacleSpawn = randomIn(2, 3);
+          if (Math.random() > 0.65) {
+            spawnObstacle();
+          }
+          state.obstacleSpawn = randomIn(1.3, 2.1);
         }
 
         if (state.rewardSpawn <= 0) {
@@ -1013,7 +1047,7 @@
         const w = state.width;
         const h = state.height;
         const cx = w * 0.5;
-        const cy = h * 0.93;
+        const cy = isCoarseInput() ? h * 0.87 : h * 0.93;
         const r = Math.min(w, h) * 0.11;
 
         ctx.save();
@@ -1069,7 +1103,7 @@
 
       function drawPlayerCar() {
         const x = playerWorldX();
-        const y = state.height * 0.89;
+        const y = isCoarseInput() ? state.height * 0.82 : state.height * 0.89;
         // 固定车体比例，避免在不同屏幕下被拉伸变形（sprite 比例 240:360）
         const bodyW = clamp(state.width * 0.125, 58, 92);
         const bodyH = bodyW * 1.5;
@@ -1266,12 +1300,17 @@
         return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
       }
 
-      function setPlayerLaneByPointer(clientX) {
-        const rect = canvas.getBoundingClientRect();
-        const normalized = (clientX - rect.left) / rect.width;
-        const lane = (normalized - 0.5) / 0.32;
-        state.playerLane = clamp(lane, -1.05, 1.05);
-        state.laneVelocity = 0;
+      function beginTouchDrive(clientX) {
+        state.touchDrive.startX = clientX;
+        state.touchDrive.startLane = state.playerLane;
+        state.touchDrive.targetLane = state.playerLane;
+      }
+
+      function updateTouchDriveByPointer(clientX) {
+        const dragPx = clientX - state.touchDrive.startX;
+        const normalized = dragPx / Math.max(1, state.width);
+        const laneDelta = normalized * 4.8;
+        state.touchDrive.targetLane = clamp(state.touchDrive.startLane + laneDelta, -1.05, 1.05);
       }
 
       function handlePointerDown(evt) {
@@ -1282,7 +1321,7 @@
         if (!isCoarseInput() || state.paused || !state.running) return;
         state.touchDrive.active = true;
         state.touchDrive.pointerId = evt.pointerId;
-        setPlayerLaneByPointer(evt.clientX);
+        beginTouchDrive(evt.clientX);
         try { canvas.setPointerCapture(evt.pointerId); } catch (e) {}
         evt.preventDefault();
       }
@@ -1290,7 +1329,7 @@
       function handlePointerMove(evt) {
         if (!state.touchDrive.active) return;
         if (state.touchDrive.pointerId !== evt.pointerId) return;
-        setPlayerLaneByPointer(evt.clientX);
+        updateTouchDriveByPointer(evt.clientX);
         evt.preventDefault();
       }
 
@@ -1299,6 +1338,7 @@
         if (state.touchDrive.pointerId !== evt.pointerId) return;
         state.touchDrive.active = false;
         state.touchDrive.pointerId = null;
+        state.touchDrive.targetLane = state.playerLane;
         try { canvas.releasePointerCapture(evt.pointerId); } catch (e) {}
       }
 
@@ -1315,6 +1355,7 @@
           state.keys.right = false;
           state.touchDrive.active = false;
           state.touchDrive.pointerId = null;
+          state.touchDrive.targetLane = state.playerLane;
         });
 
         directionButtons.forEach((btn) => {
