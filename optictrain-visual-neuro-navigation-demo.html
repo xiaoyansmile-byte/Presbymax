@@ -263,13 +263,50 @@
     }
 
     @media (max-width: 820px) {
+      #scene {
+        touch-action: none;
+      }
+
       .panel {
         min-width: 0;
+        max-width: min(90vw, 308px);
+        padding: 6px 8px;
+        border-radius: 9px;
       }
 
       .hud {
         flex-direction: column;
         gap: 8px;
+        top: 8px;
+        left: 8px;
+        right: auto;
+      }
+
+      .panel h1 {
+        margin-bottom: 3px;
+        font-size: 11px;
+      }
+
+      .row {
+        gap: 6px;
+        margin: 1px 0;
+        font-size: 10.5px;
+        line-height: 1.2;
+      }
+
+      .value {
+        font-size: 13px;
+      }
+
+      .ui-btn {
+        font-size: 10.5px;
+        padding: 3px 7px;
+        min-height: 26px;
+        border-radius: 7px;
+      }
+
+      .progress-wrap {
+        margin-top: 3px;
       }
 
       .mini-panel,
@@ -294,7 +331,7 @@
     <canvas id="scene" aria-label="Visual Neuro-Navigation Scene"></canvas>
 
     <div class="hud">
-      <section class="panel" aria-live="polite">
+      <section class="panel stats-panel" aria-live="polite">
         <h1>训练状态</h1>
         <div class="row">
           <span>总分 <strong id="score" class="value">0</strong></span>
@@ -311,10 +348,10 @@
         </div>
       </section>
 
-      <section class="panel">
-        <h1>每日训练进度（30分钟）</h1>
+      <section class="panel progress-panel">
+        <h1>每日训练进度（3分钟）</h1>
         <div class="row">
-          <span>剩余时间 <strong id="remaining" class="value">30:00</strong></span>
+          <span>剩余时间 <strong id="remaining" class="value">03:00</strong></span>
           <span>完成度 <strong id="percent" class="value ok">0%</strong></span>
           <button id="pauseBtn" class="ui-btn" type="button">暂停</button>
         </div>
@@ -366,7 +403,7 @@
       const pauseBtn = document.getElementById("pauseBtn");
       const directionButtons = [...document.querySelectorAll(".dir-btn")];
 
-      const SESSION_SECONDS = 30 * 60;
+      const SESSION_SECONDS = 3 * 60;
       const CPD_LEVELS = [6, 12];
       const GABOR_TIMEOUT = 4;
       const CHALLENGE_INTRO_SECONDS = 0.55;
@@ -389,6 +426,7 @@
         playerLane: 0,
         laneVelocity: 0,
         keys: { left: false, right: false },
+        touchDrive: { active: false, pointerId: null },
         obstacles: [],
         rewards: [],
         obstacleSpawn: 0,
@@ -1032,8 +1070,9 @@
       function drawPlayerCar() {
         const x = playerWorldX();
         const y = state.height * 0.89;
-        const bodyW = Math.max(64, state.width * 0.13);
-        const bodyH = Math.max(124, state.height * 0.22);
+        // 固定车体比例，避免在不同屏幕下被拉伸变形（sprite 比例 240:360）
+        const bodyW = clamp(state.width * 0.125, 58, 92);
+        const bodyH = bodyW * 1.5;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(state.playerLane * 0.045);
@@ -1166,7 +1205,7 @@
             state.elapsed = SESSION_SECONDS;
             state.running = false;
             setMode("feedback");
-            showFeedback("30分钟训练完成", "ok");
+            showFeedback("3分钟训练完成", "ok");
           }
 
           state.autoContrastPhase += dt * 1.2;
@@ -1223,14 +1262,59 @@
         }
       }
 
+      function isCoarseInput() {
+        return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+      }
+
+      function setPlayerLaneByPointer(clientX) {
+        const rect = canvas.getBoundingClientRect();
+        const normalized = (clientX - rect.left) / rect.width;
+        const lane = (normalized - 0.5) / 0.32;
+        state.playerLane = clamp(lane, -1.05, 1.05);
+        state.laneVelocity = 0;
+      }
+
+      function handlePointerDown(evt) {
+        if (state.mode === "challenge") {
+          handleChallengeClick(evt);
+          return;
+        }
+        if (!isCoarseInput() || state.paused || !state.running) return;
+        state.touchDrive.active = true;
+        state.touchDrive.pointerId = evt.pointerId;
+        setPlayerLaneByPointer(evt.clientX);
+        try { canvas.setPointerCapture(evt.pointerId); } catch (e) {}
+        evt.preventDefault();
+      }
+
+      function handlePointerMove(evt) {
+        if (!state.touchDrive.active) return;
+        if (state.touchDrive.pointerId !== evt.pointerId) return;
+        setPlayerLaneByPointer(evt.clientX);
+        evt.preventDefault();
+      }
+
+      function handlePointerUp(evt) {
+        if (!state.touchDrive.active) return;
+        if (state.touchDrive.pointerId !== evt.pointerId) return;
+        state.touchDrive.active = false;
+        state.touchDrive.pointerId = null;
+        try { canvas.releasePointerCapture(evt.pointerId); } catch (e) {}
+      }
+
       function bindEvents() {
         window.addEventListener("resize", resize);
         document.addEventListener("keydown", (e) => handleKey(e, true));
         document.addEventListener("keyup", (e) => handleKey(e, false));
-        canvas.addEventListener("pointerdown", handleChallengeClick);
+        canvas.addEventListener("pointerdown", handlePointerDown);
+        canvas.addEventListener("pointermove", handlePointerMove);
+        canvas.addEventListener("pointerup", handlePointerUp);
+        canvas.addEventListener("pointercancel", handlePointerUp);
         window.addEventListener("blur", () => {
           state.keys.left = false;
           state.keys.right = false;
+          state.touchDrive.active = false;
+          state.touchDrive.pointerId = null;
         });
 
         directionButtons.forEach((btn) => {
