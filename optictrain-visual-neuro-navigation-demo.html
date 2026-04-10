@@ -333,7 +333,7 @@
     </section>
 
     <section class="hint">
-      左右方向键控制车辆避障。Gabor 挑战出现后，点击底部四个方向按钮辨识条纹方向。<br />
+      左右方向键控制车辆避障。Gabor 挑战出现后，可直接点击弹出方框四周的 8 个方向区域辨识条纹方向。<br />
       Space 可暂停/继续训练。为了更接近临床环境，界面保持全黑高对比显示。
     </section>
 
@@ -369,6 +369,7 @@
       const SESSION_SECONDS = 30 * 60;
       const CPD_LEVELS = [6, 12];
       const GABOR_TIMEOUT = 4;
+      const CHALLENGE_INTRO_SECONDS = 0.55;
 
       const state = {
         width: 0,
@@ -397,6 +398,7 @@
         gaborSign: null,
         scenery: [],
         activeChallenge: null,
+        challengeUi: null,
         feedbackTimer: 0,
         feedbackText: "",
         feedbackType: "",
@@ -595,6 +597,19 @@
         };
       }
 
+      function getRoadsideSignPatchRect(sign) {
+        const depth = clamp(sign.depth, 0, 1);
+        const y = lerp(state.height * 0.24, state.height * 0.82, depth);
+        const postX = state.width * 0.5 + sign.side * lerp(state.width * 0.11, state.width * 0.44, depth);
+        const size = lerp(16, 74, depth);
+        return {
+          x: postX - size * 0.45,
+          y: y - size * 0.45,
+          w: size * 0.9,
+          h: size * 0.9
+        };
+      }
+
       function createGaborTexture(size, orientation, cpd, contrast, phase) {
         const key = `${size}_${orientation}_${cpd}_${contrast.toFixed(2)}_${phase.toFixed(2)}`;
         if (state.gaborTextureCache.has(key)) {
@@ -658,9 +673,45 @@
       }
 
       function updateDirectionButtonsState() {
-        const disabled = state.mode !== "challenge" || state.paused || !state.running;
+        const introBlocking = state.activeChallenge && state.activeChallenge.introLeft > 0;
+        const disabled = state.mode !== "challenge" || state.paused || !state.running || introBlocking;
         directionButtons.forEach((btn) => {
           btn.disabled = disabled;
+        });
+      }
+
+      function buildChallengeZones(boxX, boxY, boxW, boxH) {
+        const pad = Math.max(48, Math.round(boxW * 0.17));
+        const outerX = boxX - pad;
+        const outerY = boxY - pad;
+        const outerW = boxW + pad * 2;
+        const outerH = boxH + pad * 2;
+        const cellW = outerW / 3;
+        const cellH = outerH / 3;
+
+        const def = [
+          { key: "top-left", c: 0, r: 0, answer: "left45", hint: "↖" },
+          { key: "top", c: 1, r: 0, answer: "vertical", hint: "↑" },
+          { key: "top-right", c: 2, r: 0, answer: "right45", hint: "↗" },
+          { key: "left", c: 0, r: 1, answer: "horizontal", hint: "←" },
+          { key: "right", c: 2, r: 1, answer: "horizontal", hint: "→" },
+          { key: "bottom-left", c: 0, r: 2, answer: "right45", hint: "↙" },
+          { key: "bottom", c: 1, r: 2, answer: "vertical", hint: "↓" },
+          { key: "bottom-right", c: 2, r: 2, answer: "left45", hint: "↘" }
+        ];
+
+        return def.map((item) => {
+          const x = outerX + item.c * cellW;
+          const y = outerY + item.r * cellH;
+          return {
+            ...item,
+            x,
+            y,
+            w: cellW,
+            h: cellH,
+            cx: x + cellW / 2,
+            cy: y + cellH / 2
+          };
         });
       }
 
@@ -695,9 +746,12 @@
       }
 
       function startChallenge(fromSign) {
+        const sourceRect = getRoadsideSignPatchRect(fromSign);
         state.activeChallenge = {
           orientation: fromSign.orientation,
           phase: fromSign.phase,
+          sourceRect,
+          introLeft: CHALLENGE_INTRO_SECONDS,
           timeLeft: GABOR_TIMEOUT,
           answered: false
         };
@@ -837,6 +891,14 @@
 
         if (!state.activeChallenge) {
           setMode("roaming");
+          return;
+        }
+
+        if (state.activeChallenge.introLeft > 0) {
+          state.activeChallenge.introLeft = Math.max(0, state.activeChallenge.introLeft - dt);
+          if (state.activeChallenge.introLeft === 0) {
+            updateDirectionButtonsState();
+          }
           return;
         }
 
@@ -1006,27 +1068,67 @@
       }
 
       function drawChallengeOverlay() {
-        if (state.mode !== "challenge" || !state.activeChallenge) return;
+        if (state.mode !== "challenge" || !state.activeChallenge) {
+          state.challengeUi = null;
+          return;
+        }
+
+        const introRatio = state.activeChallenge.introLeft > 0
+          ? 1 - state.activeChallenge.introLeft / CHALLENGE_INTRO_SECONDS
+          : 1;
+        const eased = 1 - Math.pow(1 - clamp(introRatio, 0, 1), 3);
 
         const boxW = Math.min(360, state.width * 0.6);
         const boxH = boxW;
         const x = state.width * 0.5 - boxW / 2;
         const y = state.height * 0.5 - boxH / 2 - 20;
+        const zones = buildChallengeZones(x, y, boxW, boxH);
+        const canAnswer = state.activeChallenge.introLeft <= 0;
+        state.challengeUi = canAnswer ? { x, y, w: boxW, h: boxH, zones } : null;
 
-        ctx.fillStyle = "rgba(0,0,0,0.72)";
+        ctx.fillStyle = `rgba(0,0,0,${0.35 + 0.37 * eased})`;
         ctx.fillRect(x - 16, y - 16, boxW + 32, boxH + 54);
 
-        ctx.strokeStyle = "rgba(255,255,255,0.45)";
+        ctx.strokeStyle = `rgba(255,255,255,${0.2 + 0.25 * eased})`;
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, boxW, boxH);
 
         const contrast = state.manualContrast * (0.65 + 0.35 * Math.sin(state.autoContrastPhase));
         const patch = createGaborTexture(280, state.activeChallenge.orientation, state.currentCpd, clamp(contrast, 0, 1), state.activeChallenge.phase);
-        ctx.drawImage(patch, x + 14, y + 14, boxW - 28, boxH - 28);
+        const source = state.activeChallenge.sourceRect || { x: x + boxW * 0.5 - 10, y: y + boxH * 0.5 - 10, w: 20, h: 20 };
+        const target = { x: x + 14, y: y + 14, w: boxW - 28, h: boxH - 28 };
+        const px = lerp(source.x, target.x, eased);
+        const py = lerp(source.y, target.y, eased);
+        const pw = lerp(source.w, target.w, eased);
+        const ph = lerp(source.h, target.h, eased);
+        ctx.drawImage(patch, px, py, pw, ph);
+
+        // 点击区域本身保持透明，这里只在方框四周给出提示标记。
+        if (canAnswer) {
+          for (const zone of zones) {
+            const axisZone = zone.key === "top" || zone.key === "bottom" || zone.key === "left" || zone.key === "right";
+            ctx.fillStyle = axisZone ? "rgba(94, 190, 255, 0.22)" : "rgba(152, 220, 132, 0.2)";
+            ctx.beginPath();
+            ctx.arc(zone.cx, zone.cy, Math.max(15, boxW * 0.045), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.42)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = "rgba(255,255,255,0.9)";
+            ctx.font = "700 18px 'Segoe UI', 'PingFang SC', sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(zone.hint, zone.cx, zone.cy);
+          }
+        }
 
         ctx.fillStyle = "rgba(255,255,255,0.86)";
         ctx.font = "600 14px 'Segoe UI', 'PingFang SC', sans-serif";
-        const ttl = `请判断方向（剩余 ${state.activeChallenge.timeLeft.toFixed(1)}s）`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        const ttl = canAnswer
+          ? `请判断方向（剩余 ${state.activeChallenge.timeLeft.toFixed(1)}s）`
+          : "观察中：标志放大进入挑战区...";
         ctx.fillText(ttl, x + 10, y + boxH + 28);
       }
 
@@ -1108,10 +1210,24 @@
         }
       }
 
+      function handleChallengeClick(evt) {
+        if (state.mode !== "challenge" || !state.activeChallenge || !state.challengeUi) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+        for (const zone of state.challengeUi.zones) {
+          if (x >= zone.x && x <= zone.x + zone.w && y >= zone.y && y <= zone.y + zone.h) {
+            resolveChallenge(zone.answer);
+            return;
+          }
+        }
+      }
+
       function bindEvents() {
         window.addEventListener("resize", resize);
         document.addEventListener("keydown", (e) => handleKey(e, true));
         document.addEventListener("keyup", (e) => handleKey(e, false));
+        canvas.addEventListener("pointerdown", handleChallengeClick);
         window.addEventListener("blur", () => {
           state.keys.left = false;
           state.keys.right = false;
