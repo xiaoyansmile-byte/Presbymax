@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visual Neuro-Navigation (OPTIcTRAIN) Demo</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --panel: rgba(12, 12, 12, 0.86);
+      --panel-border: rgba(255, 255, 255, 0.14);
+      --text: #f5f5f5;
+      --muted: #a4a4a4;
+      --accent: #59d3ff;
+      --ok: #58e25d;
+      --bad: #ff5858;
+      --warn: #ffd45d;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at center 22%, rgba(45, 45, 45, 0.32), rgba(0, 0, 0, 0.96) 45%);
+    }
+
+    #scene {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+
+    .hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .panel {
+      min-width: 240px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: var(--panel);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+    }
+
+    .panel h1 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .row {
+      display: flex;
+      gap: 14px;
+      align-items: baseline;
+      flex-wrap: wrap;
+      font-size: 13px;
+      margin: 4px 0;
+    }
+
+    .value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--accent);
+    }
+
+    .value.bad {
+      color: var(--bad);
+    }
+
+    .value.ok {
+      color: var(--ok);
+    }
+
+    .ui-btn {
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(28, 28, 28, 0.92);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .ui-btn:hover,
+    .ui-btn:focus-visible {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .ui-btn.active {
+      background: rgba(90, 90, 90, 0.95);
+      border-color: rgba(255, 255, 255, 0.42);
+    }
+
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      min-width: 120px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .progress > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #1b95ff 0%, #62f1ff 100%);
+      transition: width 0.25s ease;
+    }
+
+    .feedback {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 14px 18px;
+      min-width: 220px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 22px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s linear;
+      z-index: 30;
+    }
+
+    .feedback.show {
+      opacity: 1;
+    }
+
+    .feedback.ok {
+      color: var(--ok);
+    }
+
+    .feedback.bad {
+      color: var(--bad);
+    }
+
+    .controls {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 25;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .dir-btn {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: rgba(20, 20, 20, 0.9);
+      color: var(--text);
+      min-width: 120px;
+      padding: 12px 14px;
+      border-radius: 11px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+
+    .dir-btn:hover,
+    .dir-btn:focus-visible {
+      border-color: var(--accent);
+      background: rgba(24, 30, 35, 0.95);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .dir-btn:active {
+      transform: translateY(0);
+    }
+
+    .dir-btn[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .mini-panel {
+      position: absolute;
+      left: 14px;
+      bottom: 108px;
+      z-index: 22;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(8, 8, 8, 0.84);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mini-panel input[type="range"] {
+      width: 140px;
+    }
+
+    .hint {
+      position: absolute;
+      right: 14px;
+      bottom: 108px;
+      z-index: 22;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(8, 8, 8, 0.84);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      max-width: 360px;
+    }
+
+    @media (max-width: 820px) {
+      .panel {
+        min-width: 0;
+      }
+
+      .hud {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .mini-panel,
+      .hint {
+        position: static;
+        margin: 8px 14px 0;
+      }
+
+      .controls {
+        position: static;
+        margin: 10px 14px 16px;
+      }
+
+      #app {
+        overflow-y: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="scene" aria-label="Visual Neuro-Navigation Scene"></canvas>
+
+    <div class="hud">
+      <section class="panel" aria-live="polite">
+        <h1>训练状态</h1>
+        <div class="row">
+          <span>总分 <strong id="score" class="value">0</strong></span>
+          <span>Gabor分 <strong id="gaborScore" class="value">0</strong></span>
+          <span>驾驶分 <strong id="driveScore" class="value">0</strong></span>
+        </div>
+        <div class="row">
+          <span>空间频率 <strong id="cpd" class="value">3 cpd</strong></span>
+          <span>模式 <strong id="mode" class="value">Roaming</strong></span>
+        </div>
+        <div class="row">
+          <span>驾驶碰撞 <strong id="collisions" class="value bad">0</strong></span>
+          <span>错误/超时 <strong id="mistakes" class="value bad">0</strong></span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h1>每日训练进度（30分钟）</h1>
+        <div class="row">
+          <span>剩余时间 <strong id="remaining" class="value">30:00</strong></span>
+          <span>完成度 <strong id="percent" class="value ok">0%</strong></span>
+          <button id="pauseBtn" class="ui-btn" type="button">暂停</button>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="feedback" class="feedback" role="status" aria-live="assertive"></div>
+
+    <section class="mini-panel" aria-label="Gabor 参数">
+      <label for="contrastRange">对比度</label>
+      <input id="contrastRange" type="range" min="0" max="100" value="80" step="1" />
+      <span id="contrastText">80%</span>
+    </section>
+
+    <section class="hint">
+      左右方向键控制车辆避障。Gabor 挑战出现后，点击底部四个方向按钮辨识条纹方向。<br />
+      Space 可暂停/继续训练。为了更接近临床环境，界面保持全黑高对比显示。
+    </section>
+
+    <div class="controls" role="group" aria-label="Gabor 方向选择">
+      <button class="dir-btn" data-answer="vertical" aria-label="垂直">↕</button>
+      <button class="dir-btn" data-answer="horizontal" aria-label="水平">↔</button>
+      <button class="dir-btn" data-answer="right45" aria-label="右45度">↗</button>
+      <button class="dir-btn" data-answer="left45" aria-label="左45度">↖</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const scoreEl = document.getElementById("score");
+      const gaborScoreEl = document.getElementById("gaborScore");
+      const driveScoreEl = document.getElementById("driveScore");
+      const cpdEl = document.getElementById("cpd");
+      const modeEl = document.getElementById("mode");
+      const collisionsEl = document.getElementById("collisions");
+      const mistakesEl = document.getElementById("mistakes");
+      const remainingEl = document.getElementById("remaining");
+      const percentEl = document.getElementById("percent");
+      const progressBarEl = document.getElementById("progressBar");
+      const feedbackEl = document.getElementById("feedback");
+      const contrastRange = document.getElementById("contrastRange");
+      const contrastText = document.getElementById("contrastText");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const directionButtons = [...document.querySelectorAll(".dir-btn")];
+
+      const SESSION_SECONDS = 30 * 60;
+      const CPD_LEVELS = [6, 12];
+      const GABOR_TIMEOUT = 4;
+
+      const state = {
+        width: 0,
+        height: 0,
+        running: true,
+        paused: false,
+        mode: "roaming",
+        elapsed: 0,
+        score: 0,
+        gaborScore: 0,
+        driveScore: 0,
+        collisions: 0,
+        mistakes: 0,
+        currentCpd: CPD_LEVELS[0],
+        roadPhase: 0,
+        speed: 0.34,
+        playerLane: 0,
+        laneVelocity: 0,
+        keys: { left: false, right: false },
+        obstacles: [],
+        rewards: [],
+        obstacleSpawn: 0,
+        rewardSpawn: 0,
+        scenerySpawn: 0,
+        gaborSpawn: 0,
+        gaborSign: null,
+        scenery: [],
+        activeChallenge: null,
+        feedbackTimer: 0,
+        feedbackText: "",
+        feedbackType: "",
+        manualContrast: 0.8,
+        autoContrastPhase: 0,
+        gaborTextureCache: new Map(),
+        spriteCache: new Map()
+      };
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        state.width = Math.max(360, Math.floor(rect.width));
+        state.height = Math.max(520, Math.floor(rect.height));
+        canvas.width = Math.floor(state.width * dpr);
+        canvas.height = Math.floor(state.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function randomIn(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function pickLane() {
+        const lanes = [-1, 0, 1];
+        return lanes[(Math.random() * lanes.length) | 0];
+      }
+
+      function pickObstacleType() {
+        const types = ["cone", "bin", "rock"];
+        return types[(Math.random() * types.length) | 0];
+      }
+
+      function pickSceneryType() {
+        const types = ["tree", "building"];
+        return types[(Math.random() * types.length) | 0];
+      }
+
+      function spriteMarkup(name) {
+        const sprites = {
+          cone: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+            <ellipse cx="90" cy="160" rx="62" ry="14" fill="#1f1f1f" opacity=".25"/>
+            <path d="M90 24 L36 142 H144 Z" fill="#ff7d2f"/>
+            <rect x="50" y="76" width="80" height="16" fill="#f6f6f6"/>
+            <rect x="44" y="104" width="92" height="18" fill="#f6f6f6"/>
+            <rect x="30" y="142" width="120" height="18" rx="8" fill="#363636"/>
+          </svg>`,
+          bin: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+            <ellipse cx="90" cy="164" rx="58" ry="12" fill="#1f1f1f" opacity=".25"/>
+            <rect x="46" y="50" width="88" height="100" rx="10" fill="#4a83df"/>
+            <rect x="38" y="38" width="104" height="18" rx="6" fill="#3a64b2"/>
+            <rect x="60" y="64" width="10" height="76" fill="#8eb4f6" opacity=".45"/>
+            <rect x="84" y="64" width="10" height="76" fill="#8eb4f6" opacity=".45"/>
+            <rect x="108" y="64" width="10" height="76" fill="#8eb4f6" opacity=".45"/>
+          </svg>`,
+          rock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+            <ellipse cx="90" cy="164" rx="58" ry="12" fill="#1f1f1f" opacity=".25"/>
+            <path d="M34 132 L56 72 L104 44 L146 76 L136 132 Z" fill="#7c8188"/>
+            <path d="M56 72 L104 44 L90 88 Z" fill="#9aa0a8"/>
+            <path d="M90 88 L146 76 L136 132 Z" fill="#666b73"/>
+          </svg>`,
+          diamond: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+            <ellipse cx="90" cy="160" rx="44" ry="12" fill="#1f1f1f" opacity=".25"/>
+            <path d="M90 24 L134 76 L90 146 L46 76 Z" fill="#68eaff"/>
+            <path d="M90 24 L118 76 L90 146 Z" fill="#90f6ff"/>
+            <path d="M46 76 L90 76 L90 146 Z" fill="#4acfe9"/>
+            <path d="M134 76 L90 76 L90 146 Z" fill="#37bdd8"/>
+            <polyline points="46,76 90,76 134,76" fill="none" stroke="#e3fdff" stroke-width="6"/>
+          </svg>`,
+          tree: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
+            <ellipse cx="110" cy="236" rx="62" ry="14" fill="#1f1f1f" opacity=".2"/>
+            <rect x="96" y="144" width="28" height="88" rx="8" fill="#7d5334"/>
+            <circle cx="110" cy="86" r="62" fill="#2c9a4f"/>
+            <circle cx="74" cy="110" r="36" fill="#37ad5b"/>
+            <circle cx="146" cy="110" r="36" fill="#37ad5b"/>
+          </svg>`,
+          building: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320">
+            <ellipse cx="110" cy="300" rx="72" ry="16" fill="#1f1f1f" opacity=".2"/>
+            <rect x="44" y="32" width="132" height="260" rx="8" fill="#4a505a"/>
+            <rect x="64" y="56" width="20" height="24" fill="#f7cf78"/>
+            <rect x="100" y="56" width="20" height="24" fill="#f7cf78"/>
+            <rect x="136" y="56" width="20" height="24" fill="#f7cf78"/>
+            <rect x="64" y="98" width="20" height="24" fill="#f7cf78"/>
+            <rect x="100" y="98" width="20" height="24" fill="#f7cf78"/>
+            <rect x="136" y="98" width="20" height="24" fill="#f7cf78"/>
+            <rect x="64" y="140" width="20" height="24" fill="#f7cf78"/>
+            <rect x="100" y="140" width="20" height="24" fill="#f7cf78"/>
+            <rect x="136" y="140" width="20" height="24" fill="#f7cf78"/>
+            <rect x="92" y="214" width="36" height="78" fill="#343941"/>
+          </svg>`,
+          car: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360">
+            <ellipse cx="120" cy="334" rx="78" ry="18" fill="#1f1f1f" opacity=".28"/>
+            <rect x="64" y="48" width="112" height="258" rx="38" fill="#f2f5f8"/>
+            <rect x="78" y="74" width="84" height="82" rx="20" fill="#25303c"/>
+            <rect x="78" y="176" width="84" height="76" rx="14" fill="#dce3ea"/>
+            <rect x="72" y="270" width="24" height="18" rx="4" fill="#ff4a4a"/>
+            <rect x="144" y="270" width="24" height="18" rx="4" fill="#ff4a4a"/>
+            <rect x="58" y="110" width="10" height="60" rx="5" fill="#3b4048"/>
+            <rect x="172" y="110" width="10" height="60" rx="5" fill="#3b4048"/>
+          </svg>`
+        };
+        return sprites[name];
+      }
+
+      function getSprite(name) {
+        if (!state.spriteCache.has(name)) {
+          const img = new Image();
+          img.src = `data:image/svg+xml;utf8,${encodeURIComponent(spriteMarkup(name))}`;
+          state.spriteCache.set(name, img);
+        }
+        return state.spriteCache.get(name);
+      }
+
+      function drawSprite(name, x, y, w, h, alpha = 1) {
+        const img = getSprite(name);
+        if (!img || !img.complete) return;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, x - w / 2, y - h, w, h);
+        ctx.restore();
+      }
+
+      function formatClock(totalSeconds) {
+        const safe = Math.max(0, Math.ceil(totalSeconds));
+        const mm = Math.floor(safe / 60).toString().padStart(2, "0");
+        const ss = (safe % 60).toString().padStart(2, "0");
+        return `${mm}:${ss}`;
+      }
+
+      function laneToWorldX(lane, depth) {
+        const horizon = state.height * 0.22;
+        const y = lerp(horizon, state.height * 0.93, depth);
+        const roadHalf = lerp(state.width * 0.04, state.width * 0.39, (y - horizon) / (state.height * 0.71));
+        const center = state.width * 0.5;
+        return center + lane * roadHalf * 0.55;
+      }
+
+      function playerWorldX() {
+        return state.width * 0.5 + state.playerLane * state.width * 0.19;
+      }
+
+      function spawnObstacle() {
+        state.obstacles.push({
+          lane: pickLane(),
+          type: pickObstacleType(),
+          depth: 0.03,
+          hit: false,
+          scored: false
+        });
+      }
+
+      function spawnReward() {
+        state.rewards.push({
+          lane: pickLane(),
+          depth: 0.05,
+          got: false
+        });
+      }
+
+      function spawnScenery() {
+        state.scenery.push({
+          side: Math.random() > 0.5 ? 1 : -1,
+          type: pickSceneryType(),
+          depth: 0.02
+        });
+      }
+
+      function randomOrientation() {
+        const options = ["vertical", "horizontal", "right45", "left45"];
+        return options[(Math.random() * options.length) | 0];
+      }
+
+      function randomCpd() {
+        return CPD_LEVELS[(Math.random() * CPD_LEVELS.length) | 0];
+      }
+
+      function randomPhaseBinary() {
+        return Math.random() > 0.5 ? 0 : Math.PI;
+      }
+
+      function spawnGaborSign() {
+        state.currentCpd = randomCpd();
+        state.gaborSign = {
+          depth: 0.06,
+          side: Math.random() > 0.5 ? 1 : -1,
+          orientation: randomOrientation(),
+          phase: randomPhaseBinary()
+        };
+      }
+
+      function createGaborTexture(size, orientation, cpd, contrast, phase) {
+        const key = `${size}_${orientation}_${cpd}_${contrast.toFixed(2)}_${phase.toFixed(2)}`;
+        if (state.gaborTextureCache.has(key)) {
+          return state.gaborTextureCache.get(key);
+        }
+
+        const off = document.createElement("canvas");
+        off.width = size;
+        off.height = size;
+        const ictx = off.getContext("2d");
+        const image = ictx.createImageData(size, size);
+        const data = image.data;
+
+        const thetaMap = {
+          vertical: 0,
+          horizontal: Math.PI / 2,
+          right45: Math.PI / 4,
+          left45: -Math.PI / 4
+        };
+
+        const theta = thetaMap[orientation] || 0;
+        const sigma = 0.33;
+        const freqFactor = cpd / 3;
+
+        for (let y = 0; y < size; y += 1) {
+          for (let x = 0; x < size; x += 1) {
+            const nx = (x / (size - 1)) * 2 - 1;
+            const ny = (y / (size - 1)) * 2 - 1;
+            const xTheta = nx * Math.cos(theta) + ny * Math.sin(theta);
+            const gaussian = Math.exp(-((nx * nx + ny * ny) / (2 * sigma * sigma)));
+            const carrier = Math.cos(2 * Math.PI * freqFactor * xTheta + phase);
+            const value = gaussian * carrier;
+            const gray = Math.round(127 + value * 128 * contrast);
+            const idx = (y * size + x) * 4;
+            data[idx] = gray;
+            data[idx + 1] = gray;
+            data[idx + 2] = gray;
+            data[idx + 3] = Math.round(255 * gaussian);
+          }
+        }
+
+        ictx.putImageData(image, 0, 0);
+        state.gaborTextureCache.set(key, off);
+        if (state.gaborTextureCache.size > 70) {
+          const first = state.gaborTextureCache.keys().next().value;
+          state.gaborTextureCache.delete(first);
+        }
+        return off;
+      }
+
+      function showFeedback(text, type) {
+        state.feedbackText = text;
+        state.feedbackType = type;
+        state.feedbackTimer = 0.9;
+        feedbackEl.textContent = text;
+        feedbackEl.className = `feedback show ${type}`;
+      }
+
+      function hideFeedback() {
+        feedbackEl.className = "feedback";
+      }
+
+      function updateDirectionButtonsState() {
+        const disabled = state.mode !== "challenge" || state.paused || !state.running;
+        directionButtons.forEach((btn) => {
+          btn.disabled = disabled;
+        });
+      }
+
+      function setMode(mode) {
+        state.mode = mode;
+        modeEl.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+        updateDirectionButtonsState();
+      }
+
+      function togglePause(force) {
+        if (!state.running) return;
+        state.paused = typeof force === "boolean" ? force : !state.paused;
+        pauseBtn.textContent = state.paused ? "继续" : "暂停";
+        pauseBtn.classList.toggle("active", state.paused);
+        if (state.paused) {
+          state.keys.left = false;
+          state.keys.right = false;
+          showFeedback("已暂停", "ok");
+        } else {
+          hideFeedback();
+        }
+        updateDirectionButtonsState();
+      }
+
+      function scoreAdd(value, kind) {
+        state.score += value;
+        if (kind === "gabor") {
+          state.gaborScore += value;
+        } else {
+          state.driveScore += value;
+        }
+      }
+
+      function startChallenge(fromSign) {
+        state.activeChallenge = {
+          orientation: fromSign.orientation,
+          phase: fromSign.phase,
+          timeLeft: GABOR_TIMEOUT,
+          answered: false
+        };
+        state.gaborSign = null;
+        setMode("challenge");
+      }
+
+      function resolveChallenge(answer) {
+        if (!state.activeChallenge || state.activeChallenge.answered) {
+          return;
+        }
+        state.activeChallenge.answered = true;
+        const correct = answer === state.activeChallenge.orientation;
+        if (correct) {
+          scoreAdd(100, "gabor");
+          showFeedback("Correct +100", "ok");
+        } else {
+          state.mistakes += 1;
+          showFeedback("Wrong", "bad");
+        }
+        setMode("feedback");
+      }
+
+      function failChallengeByTimeout() {
+        if (!state.activeChallenge || state.activeChallenge.answered) {
+          return;
+        }
+        state.activeChallenge.answered = true;
+        state.mistakes += 1;
+        showFeedback("Miss / Timeout", "bad");
+        setMode("feedback");
+      }
+
+      function updateHud() {
+        scoreEl.textContent = String(state.score);
+        gaborScoreEl.textContent = String(state.gaborScore);
+        driveScoreEl.textContent = String(state.driveScore);
+        cpdEl.textContent = `${state.currentCpd} cpd`;
+        collisionsEl.textContent = String(state.collisions);
+        mistakesEl.textContent = String(state.mistakes);
+
+        const left = SESSION_SECONDS - state.elapsed;
+        const percent = clamp((state.elapsed / SESSION_SECONDS) * 100, 0, 100);
+        remainingEl.textContent = formatClock(left);
+        percentEl.textContent = `${percent.toFixed(1)}%`;
+        progressBarEl.style.width = `${percent}%`;
+      }
+
+      function updatePlayer(dt) {
+        const accel = 10.5;
+        const friction = 3.1;
+        if (state.keys.left) state.laneVelocity -= accel * dt;
+        if (state.keys.right) state.laneVelocity += accel * dt;
+        state.laneVelocity = clamp(state.laneVelocity, -2.2, 2.2);
+        state.laneVelocity *= Math.exp(-friction * dt);
+        state.playerLane = clamp(state.playerLane + state.laneVelocity * dt, -1.05, 1.05);
+      }
+
+      function updateEntities(dt, sceneSpeed) {
+        const px = playerWorldX();
+        for (const ob of state.obstacles) {
+          ob.depth += sceneSpeed * dt;
+          const ox = laneToWorldX(ob.lane, ob.depth);
+          if (!ob.hit && ob.depth > 0.84 && Math.abs(ox - px) < state.width * 0.055) {
+            ob.hit = true;
+            state.collisions += 1;
+            showFeedback("Collision", "bad");
+          }
+          if (!ob.hit && !ob.scored && ob.depth > 1.02) {
+            ob.scored = true;
+            scoreAdd(10, "drive");
+          }
+        }
+        state.obstacles = state.obstacles.filter((ob) => ob.depth < 1.15);
+
+        for (const reward of state.rewards) {
+          reward.depth += sceneSpeed * dt;
+          const rx = laneToWorldX(reward.lane, reward.depth);
+          if (!reward.got && reward.depth > 0.84 && Math.abs(rx - px) < state.width * 0.06) {
+            reward.got = true;
+            scoreAdd(20, "drive");
+            showFeedback("Reward +20", "ok");
+          }
+        }
+        state.rewards = state.rewards.filter((r) => !r.got && r.depth < 1.12);
+
+        for (const item of state.scenery) {
+          item.depth += sceneSpeed * dt * 0.9;
+        }
+        state.scenery = state.scenery.filter((item) => item.depth < 1.15);
+
+        if (state.gaborSign) {
+          state.gaborSign.depth += sceneSpeed * dt * 0.92;
+          if (state.gaborSign.depth > 0.56) {
+            startChallenge(state.gaborSign);
+          }
+          if (state.gaborSign && state.gaborSign.depth > 1.05) {
+            state.gaborSign = null;
+          }
+        }
+      }
+
+      function updateSpawners(dt) {
+        if (state.mode !== "roaming") return;
+
+        state.obstacleSpawn -= dt;
+        state.rewardSpawn -= dt;
+        state.scenerySpawn -= dt;
+        state.gaborSpawn -= dt;
+
+        if (state.obstacleSpawn <= 0) {
+          spawnObstacle();
+          state.obstacleSpawn = randomIn(2, 3);
+        }
+
+        if (state.rewardSpawn <= 0) {
+          spawnReward();
+          state.rewardSpawn = randomIn(1.8, 2.8);
+        }
+
+        if (state.scenerySpawn <= 0) {
+          spawnScenery();
+          if (Math.random() > 0.62) {
+            spawnScenery();
+          }
+          state.scenerySpawn = randomIn(0.6, 1.2);
+        }
+
+        if (!state.gaborSign && state.gaborSpawn <= 0) {
+          spawnGaborSign();
+          state.gaborSpawn = 3;
+        }
+      }
+
+      function updateChallenge(dt) {
+        if (state.mode !== "challenge") return;
+
+        if (!state.activeChallenge) {
+          setMode("roaming");
+          return;
+        }
+
+        state.activeChallenge.timeLeft -= dt;
+        if (state.activeChallenge.timeLeft <= 0) {
+          failChallengeByTimeout();
+        }
+      }
+
+      function updateFeedback(dt) {
+        if (state.feedbackTimer > 0) {
+          state.feedbackTimer -= dt;
+          if (state.feedbackTimer <= 0) {
+            hideFeedback();
+            state.feedbackText = "";
+            state.feedbackType = "";
+            if (state.mode === "feedback") {
+              state.activeChallenge = null;
+              setMode("roaming");
+            }
+          }
+        }
+      }
+
+      function drawRoad() {
+        const w = state.width;
+        const h = state.height;
+        const horizonY = h * 0.22;
+
+        ctx.fillStyle = "#020202";
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = "#101010";
+        ctx.beginPath();
+        ctx.moveTo(w * 0.46, horizonY);
+        ctx.lineTo(w * 0.54, horizonY);
+        ctx.lineTo(w * 0.9, h);
+        ctx.lineTo(w * 0.1, h);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.15)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.46, horizonY);
+        ctx.lineTo(w * 0.1, h);
+        ctx.moveTo(w * 0.54, horizonY);
+        ctx.lineTo(w * 0.9, h);
+        ctx.stroke();
+
+        const stripeCount = 24;
+        for (let i = 0; i < stripeCount; i += 1) {
+          const t = ((i / stripeCount) + state.roadPhase) % 1;
+          const y = lerp(horizonY, h, t * t);
+          const width = lerp(1, 14, t);
+          const alpha = lerp(0.2, 0.9, t);
+          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.55})`;
+          ctx.fillRect(w * 0.5 - width / 2, y, width, 8 + t * 12);
+        }
+
+        ctx.strokeStyle = "rgba(255, 226, 118, 0.45)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.43, horizonY);
+        ctx.lineTo(w * 0.03, h);
+        ctx.moveTo(w * 0.57, horizonY);
+        ctx.lineTo(w * 0.97, h);
+        ctx.stroke();
+
+        drawSteeringWheel();
+      }
+
+      function drawSteeringWheel() {
+        const w = state.width;
+        const h = state.height;
+        const cx = w * 0.5;
+        const cy = h * 0.93;
+        const r = Math.min(w, h) * 0.11;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(state.playerLane * 0.32);
+        ctx.strokeStyle = "rgba(255,255,255,0.28)";
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.55, 0);
+        ctx.lineTo(r * 0.55, 0);
+        ctx.moveTo(0, -r * 0.55);
+        ctx.lineTo(0, r * 0.55);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawObstacle(ob) {
+        const depth = clamp(ob.depth, 0, 1.1);
+        const x = laneToWorldX(ob.lane, depth);
+        const y = lerp(state.height * 0.23, state.height * 0.9, depth);
+        const size = lerp(16, 92, depth);
+        drawSprite(ob.type, x, y + size * 0.25, size, size, ob.hit ? 0.5 : 1);
+      }
+
+      function drawReward(reward) {
+        const depth = clamp(reward.depth, 0, 1.1);
+        const x = laneToWorldX(reward.lane, depth);
+        const y = lerp(state.height * 0.23, state.height * 0.9, depth);
+        const size = lerp(18, 70, depth);
+        drawSprite("diamond", x, y + size * 0.2, size, size, 1);
+      }
+
+      function drawScenery(item) {
+        const depth = clamp(item.depth, 0, 1.12);
+        const y = lerp(state.height * 0.24, state.height * 0.92, depth);
+        const roadEdgeOffset = lerp(state.width * 0.09, state.width * 0.47, depth);
+        const x = state.width * 0.5 + item.side * (roadEdgeOffset + lerp(12, 56, depth));
+        if (item.type === "tree") {
+          const size = lerp(26, 168, depth);
+          drawSprite("tree", x, y + size * 0.12, size * 0.9, size * 1.08, 0.95);
+        } else {
+          const h = lerp(38, 228, depth);
+          const w = h * 0.62;
+          drawSprite("building", x, y + h * 0.08, w, h, 0.95);
+        }
+      }
+
+      function drawPlayerCar() {
+        const x = playerWorldX();
+        const y = state.height * 0.89;
+        const bodyW = Math.max(64, state.width * 0.13);
+        const bodyH = Math.max(124, state.height * 0.22);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(state.playerLane * 0.045);
+        drawSprite("car", 0, bodyH * 0.5, bodyW, bodyH, 1);
+        ctx.restore();
+      }
+
+      function drawRoadsideSign(sign) {
+        const depth = clamp(sign.depth, 0, 1);
+        const y = lerp(state.height * 0.24, state.height * 0.82, depth);
+        const postX = state.width * 0.5 + sign.side * lerp(state.width * 0.11, state.width * 0.44, depth);
+        const size = lerp(16, 74, depth);
+
+        ctx.strokeStyle = "rgba(230,230,230,0.65)";
+        ctx.lineWidth = Math.max(2, size * 0.08);
+        ctx.beginPath();
+        ctx.moveTo(postX, y + size * 0.62);
+        ctx.lineTo(postX, y + size * 1.6);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(15,15,15,0.95)";
+        ctx.strokeStyle = "rgba(255,255,255,0.42)";
+        ctx.lineWidth = Math.max(2, size * 0.06);
+        ctx.beginPath();
+        ctx.roundRect(postX - size * 0.65, y - size * 0.65, size * 1.3, size * 1.3, size * 0.16);
+        ctx.fill();
+        ctx.stroke();
+
+        const contrast = state.manualContrast * (0.65 + 0.35 * Math.sin(state.autoContrastPhase));
+        const gabor = createGaborTexture(108, sign.orientation, state.currentCpd, clamp(contrast, 0, 1), sign.phase);
+        ctx.drawImage(gabor, postX - size * 0.45, y - size * 0.45, size * 0.9, size * 0.9);
+      }
+
+      function drawChallengeOverlay() {
+        if (state.mode !== "challenge" || !state.activeChallenge) return;
+
+        const boxW = Math.min(360, state.width * 0.6);
+        const boxH = boxW;
+        const x = state.width * 0.5 - boxW / 2;
+        const y = state.height * 0.5 - boxH / 2 - 20;
+
+        ctx.fillStyle = "rgba(0,0,0,0.72)";
+        ctx.fillRect(x - 16, y - 16, boxW + 32, boxH + 54);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.45)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, boxW, boxH);
+
+        const contrast = state.manualContrast * (0.65 + 0.35 * Math.sin(state.autoContrastPhase));
+        const patch = createGaborTexture(280, state.activeChallenge.orientation, state.currentCpd, clamp(contrast, 0, 1), state.activeChallenge.phase);
+        ctx.drawImage(patch, x + 14, y + 14, boxW - 28, boxH - 28);
+
+        ctx.fillStyle = "rgba(255,255,255,0.86)";
+        ctx.font = "600 14px 'Segoe UI', 'PingFang SC', sans-serif";
+        const ttl = `请判断方向（剩余 ${state.activeChallenge.timeLeft.toFixed(1)}s）`;
+        ctx.fillText(ttl, x + 10, y + boxH + 28);
+      }
+
+      function render() {
+        drawRoad();
+
+        for (const item of state.scenery) {
+          drawScenery(item);
+        }
+
+        for (const reward of state.rewards) {
+          drawReward(reward);
+        }
+
+        for (const ob of state.obstacles) {
+          drawObstacle(ob);
+        }
+
+        if (state.gaborSign) {
+          drawRoadsideSign(state.gaborSign);
+        }
+
+        drawChallengeOverlay();
+        drawPlayerCar();
+      }
+
+      function tick(ts) {
+        if (!state.lastTs) state.lastTs = ts;
+        const dt = clamp((ts - state.lastTs) / 1000, 0, 0.05);
+        state.lastTs = ts;
+
+        if (state.running && !state.paused) {
+          state.elapsed += dt;
+          if (state.elapsed >= SESSION_SECONDS) {
+            state.elapsed = SESSION_SECONDS;
+            state.running = false;
+            setMode("feedback");
+            showFeedback("30分钟训练完成", "ok");
+          }
+
+          state.autoContrastPhase += dt * 1.2;
+          state.roadPhase = (state.roadPhase + dt * state.speed * (state.mode === "challenge" ? 0.35 : 1)) % 1;
+
+          if (state.mode !== "challenge") {
+            updatePlayer(dt);
+          }
+
+          const sceneSpeed = state.mode === "challenge" ? state.speed * 0.45 : state.speed;
+          updateEntities(dt, sceneSpeed);
+          updateSpawners(dt);
+          updateChallenge(dt);
+          updateFeedback(dt);
+          updateHud();
+        }
+
+        render();
+        requestAnimationFrame(tick);
+      }
+
+      function handleKey(evt, pressed) {
+        if (evt.key === " " || evt.code === "Space") {
+          if (pressed) {
+            togglePause();
+          }
+          evt.preventDefault();
+          return;
+        }
+
+        if (state.paused) {
+          return;
+        }
+
+        if (evt.key === "ArrowLeft") {
+          state.keys.left = pressed;
+          evt.preventDefault();
+        } else if (evt.key === "ArrowRight") {
+          state.keys.right = pressed;
+          evt.preventDefault();
+        }
+      }
+
+      function bindEvents() {
+        window.addEventListener("resize", resize);
+        document.addEventListener("keydown", (e) => handleKey(e, true));
+        document.addEventListener("keyup", (e) => handleKey(e, false));
+        window.addEventListener("blur", () => {
+          state.keys.left = false;
+          state.keys.right = false;
+        });
+
+        directionButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            resolveChallenge(btn.dataset.answer);
+          });
+        });
+
+        pauseBtn.addEventListener("click", () => {
+          togglePause();
+        });
+
+        contrastRange.addEventListener("input", () => {
+          state.manualContrast = clamp(Number(contrastRange.value) / 100, 0, 1);
+          contrastText.textContent = `${Math.round(state.manualContrast * 100)}%`;
+          state.gaborTextureCache.clear();
+        });
+      }
+
+      function init() {
+        ["cone", "bin", "rock", "diamond", "tree", "building", "car"].forEach((k) => getSprite(k));
+        resize();
+        bindEvents();
+        setMode("roaming");
+        updateHud();
+        requestAnimationFrame(tick);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

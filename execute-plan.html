@@ -513,6 +513,10 @@
 
       // 训练项目映射
       const trainingMap = {
+        'optictrain-navigation': {
+          name: 'Visual Neuro-Navigation',
+          url: 'optictrain-visual-neuro-navigation-demo.html'
+        },
         'gabor-match': {
           name: 'Gabor 配对训练',
           url: 'gabor-match-pilot.html'
@@ -539,6 +543,25 @@
         }
       };
 
+      function normalizePlan(plan) {
+        if (!plan || plan.id !== 'post-surgery') return plan;
+        const hasOptictrain = Array.isArray(plan.trainings) && plan.trainings.some(t => t && t.id === 'optictrain-navigation');
+        if (hasOptictrain && plan.sessionsPerWeek === 15) return plan;
+
+        const updatedTrainings = [
+          { id: 'optictrain-navigation', name: 'Visual Neuro-Navigation', priority: 'high', frequency: '5次/周' },
+          { id: 'gabor-match', name: 'Gabor 配对训练', priority: 'high', frequency: '5次/周' },
+          { id: 'tunnel', name: '隧道远近切换识别', priority: 'high', frequency: '5次/周' }
+        ];
+
+        return {
+          ...plan,
+          sessionsPerWeek: 15,
+          trainings: updatedTrainings,
+          totalSessions: (Number(plan.duration) || 4) * 15
+        };
+      }
+
       // 加载当前用户
       function loadCurrentUser() {
         try {
@@ -562,7 +585,11 @@
           const user = loadCurrentUser();
           if (!plan) return null;
           if (user && plan.userId && plan.userId !== user.id) return null;
-          return plan;
+          const normalized = normalizePlan(plan);
+          if (JSON.stringify(normalized) !== JSON.stringify(plan)) {
+            saveTrainingPlan(normalized);
+          }
+          return normalized;
         } catch (e) {
           return null;
         }

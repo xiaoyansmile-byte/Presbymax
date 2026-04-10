@@ -469,7 +469,7 @@
         <div class="plan-duration">持续时间：4 周</div>
         <p>专为 ProsbyMax 手术后的患者设计，帮助快速恢复和适应新的视力状态。</p>
         <div class="plan-features">
-          <div class="plan-feature">每周 10 次训练，每次 15-20 分钟</div>
+          <div class="plan-feature">每周 15 次训练，每次 15-20 分钟</div>
           <div class="plan-feature">循序渐进的难度提升</div>
           <div class="plan-feature">重点训练焦点切换能力</div>
           <div class="plan-feature">高频训练强化视觉适应</div>
@@ -477,6 +477,7 @@
         <div style="margin: 1rem 0;">
           <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem;">包含训练项目：</h3>
           <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• Visual Neuro-Navigation（5次/周）</li>
             <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• Gabor 配对训练（5次/周）</li>
             <li style="margin-bottom: 0.35rem; font-size: 0.85rem;">• 隧道远近切换识别（5次/周）</li>
           </ul>
@@ -574,10 +575,11 @@
       'post-surgery': {
         name: '术后恢复计划（ProsbyMax）',
         duration: 4, // 周
-        sessionsPerWeek: 10,
+        sessionsPerWeek: 15,
         sessionDuration: '15-20分钟',
         description: '专为 ProsbyMax 手术后的患者设计，帮助快速恢复和适应新的视力状态。',
         trainings: [
+          { id: 'optictrain-navigation', name: 'Visual Neuro-Navigation', priority: 'high', frequency: '5次/周' },
           { id: 'gabor-match', name: 'Gabor 配对训练', priority: 'high', frequency: '5次/周' },
           { id: 'tunnel', name: '隧道远近切换识别', priority: 'high', frequency: '5次/周' }
         ]
@@ -621,6 +623,23 @@
       }
     };
 
+    function normalizePlanWithTemplate(plan) {
+      if (!plan || !plan.id) return plan;
+      const template = trainingPlans[plan.id];
+      if (!template) return plan;
+
+      const normalized = {
+        ...plan,
+        name: template.name,
+        duration: template.duration,
+        sessionsPerWeek: template.sessionsPerWeek,
+        sessionDuration: template.sessionDuration,
+        trainings: template.trainings,
+        totalSessions: template.duration * template.sessionsPerWeek
+      };
+      return normalized;
+    }
+
     // 加载当前用户
     function loadCurrentUser() {
       try {
@@ -644,7 +663,11 @@
         const user = loadCurrentUser();
         if (!plan) return null;
         if (user && plan.userId && plan.userId !== user.id) return null;
-        return plan;
+        const normalized = normalizePlanWithTemplate(plan);
+        if (JSON.stringify(normalized) !== JSON.stringify(plan)) {
+          saveTrainingPlan(normalized);
+        }
+        return normalized;
       } catch (e) {
         return null;
       }
