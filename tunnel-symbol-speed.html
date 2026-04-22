@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>隧道远近切换识别（Demo 6）</title>
+  <script src="storage.js?v=20260421a"></script>
   <script src="menu.js?v=20260407c"></script>
   <style>
     :root {
@@ -921,23 +922,22 @@
     if (roundResultSaved) return;
     roundResultSaved = true;
 
-    const history = JSON.parse(localStorage.getItem('trainingHistory') || '[]');
     const trainingId = 'tunnel';
     const plan = JSON.parse(localStorage.getItem('vision-training-plan') || 'null');
-    
-    history.push({
-      trainingId: trainingId,
-      date: new Date().toISOString(),
+
+    window.VisionTrainingStorage.saveTrainingRecord({
+      trainingType: trainingId,
+      endedAt: new Date().toISOString(),
       planId: plan ? plan.id : null,
       score: excellentCount * 3 + mediumCount * 2, // 优3分，中2分，差不计分
       total: totalCount,
-      excellent: excellentCount,
-      medium: mediumCount,
-      poor: poorCount,
-      accuracy: totalCount > 0 ? Math.round(((excellentCount + mediumCount) / totalCount) * 100) : 0
+      accuracy: totalCount > 0 ? Math.round(((excellentCount + mediumCount) / totalCount) * 100) : 0,
+      metrics: {
+        excellent: excellentCount,
+        medium: mediumCount,
+        poor: poorCount
+      }
     });
-    
-    localStorage.setItem('trainingHistory', JSON.stringify(history));
     const score = excellentCount * 3 + mediumCount * 2;
     const accuracy = totalCount > 0 ? Math.round(((excellentCount + mediumCount) / totalCount) * 100) : 0;
     if (typeof window.showTrainingResultThenRedirect === 'function') {

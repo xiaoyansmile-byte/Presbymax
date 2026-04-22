@@ -1,0 +1,22 @@
+{
+  "name": "prosbymax-mcl-product",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Productized ProsbyMax/MCL vision training app workspace.",
+  "packageManager": "pnpm@10.9.0",
+  "scripts": {
+    "dev": "pnpm --filter @prosbymax/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:init": "pnpm --filter @prosbymax/web db:init",
+    "db:init:postgres": "pnpm --filter @prosbymax/web db:init:postgres",
+    "db:migrate:postgres": "pnpm --filter @prosbymax/web db:migrate:postgres",
+    "smoke:db": "pnpm --filter @prosbymax/web smoke:db",
+    "test:smoke": "pnpm db:init && pnpm smoke:db && pnpm --filter @prosbymax/web test:smoke",
+    "test:api": "pnpm db:init && pnpm --filter @prosbymax/web test:api"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

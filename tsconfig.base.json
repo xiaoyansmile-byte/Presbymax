@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@prosbymax/types": ["packages/types/src"],
+      "@prosbymax/core": ["packages/core/src"],
+      "@prosbymax/api-contract": ["packages/api-contract/src"],
+      "@prosbymax/ui": ["packages/ui/src"]
+    }
+  }
+}

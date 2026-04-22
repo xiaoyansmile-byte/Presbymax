@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>执行训练计划</title>
+  <script src="storage.js?v=20260421a"></script>
   <script src="menu.js?v=20260407c"></script>
   <style>
     :root {
@@ -597,19 +598,19 @@
 
       // 加载训练历史
       function loadTrainingHistory() {
-        try {
-          const raw = localStorage.getItem(TRAINING_HISTORY_KEY);
-          if (!raw) return [];
-          return JSON.parse(raw);
-        } catch (e) {
-          return [];
-        }
+        return window.VisionTrainingStorage
+          ? window.VisionTrainingStorage.loadTrainingRecords()
+          : [];
       }
 
       // 保存训练历史
       function saveTrainingHistory(history) {
         try {
-          localStorage.setItem(TRAINING_HISTORY_KEY, JSON.stringify(history));
+          if (window.VisionTrainingStorage) {
+            window.VisionTrainingStorage.saveTrainingRecords(history);
+          } else {
+            localStorage.setItem(TRAINING_HISTORY_KEY, JSON.stringify(history));
+          }
           return true;
         } catch (e) {
           return false;
@@ -693,8 +694,8 @@
         
         if (existingIndex === -1) {
           history.push({
-            trainingId: trainingId,
-            date: today,
+            trainingType: trainingId,
+            endedAt: today,
             planId: plan.id
           });
           

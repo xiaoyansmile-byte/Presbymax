@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gabor 配对训练（Demo 1）</title>
+  <script src="storage.js?v=20260421a"></script>
   <script src="menu.js?v=20260407c"></script>
   <style>
     :root {
@@ -764,7 +765,7 @@
     </div>
   </div>
 
-  <footer>提示格不可点击 · 数据存于 localStorage 键 gabor-training-history · 格间仅 θ / f / φ 变化</footer>
+  <footer>提示格不可点击 · 训练数据统一存储 · 格间仅 θ / f / φ 变化</footer>
 
   <script>
 (function () {
@@ -1540,20 +1541,20 @@
     if (planResultSaved) return;
     planResultSaved = true;
 
-    const history = JSON.parse(localStorage.getItem('trainingHistory') || '[]');
     const trainingId = 'gabor-match';
     const plan = JSON.parse(localStorage.getItem('vision-training-plan') || 'null');
-    
-    history.push({
-      trainingId: trainingId,
-      date: new Date().toISOString(),
+
+    window.VisionTrainingStorage.saveTrainingRecord({
+      trainingType: trainingId,
+      endedAt: new Date().toISOString(),
       planId: plan ? plan.id : null,
       score: sessionScore,
-      duration: Math.round((Date.now() - sessionStartTs) / 1000),
-      maxK: sessionMaxK
+      durationSec: Math.round((Date.now() - sessionStartTs) / 1000),
+      metrics: {
+        maxK: sessionMaxK,
+        success: sessionSuccess
+      }
     });
-    
-    localStorage.setItem('trainingHistory', JSON.stringify(history));
     if (typeof window.showTrainingResultThenRedirect === 'function') {
       window.showTrainingResultThenRedirect({
         title: '训练完成',

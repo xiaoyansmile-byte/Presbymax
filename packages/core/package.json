@@ -1,0 +1,20 @@
+{
+  "name": "@prosbymax/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@prosbymax/types": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "echo \"core lint pending\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "*"
+      ],
+      "@prosbymax/types": [
+        "../../packages/types/src"
+      ],
+      "@prosbymax/core": [
+        "../../packages/core/src"
+      ],
+      "@prosbymax/api-contract": [
+        "../../packages/api-contract/src"
+      ],
+      "@prosbymax/ui": [
+        "../../packages/ui/src"
+      ]
+    },
+    "incremental": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

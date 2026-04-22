@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>训练计划 - 视力训练系统</title>
+  <script src="storage.js?v=20260421a"></script>
   <script src="menu.js?v=20260407c"></script>
   <style>
     :root {
@@ -697,13 +698,9 @@
 
     // 加载训练历史
     function loadTrainingHistory() {
-      try {
-        const raw = localStorage.getItem('trainingHistory');
-        if (!raw) return [];
-        return JSON.parse(raw);
-      } catch (e) {
-        return [];
-      }
+      return window.VisionTrainingStorage
+        ? window.VisionTrainingStorage.loadTrainingRecords()
+        : [];
     }
 
     // 更新当前计划显示
@@ -814,7 +811,11 @@
           // 清除相关的训练历史记录
           const history = loadTrainingHistory();
           const filteredHistory = history.filter(item => item.planId !== plan.id);
-          localStorage.setItem('trainingHistory', JSON.stringify(filteredHistory));
+          if (window.VisionTrainingStorage) {
+            window.VisionTrainingStorage.saveTrainingRecords(filteredHistory);
+          } else {
+            localStorage.setItem('trainingHistory', JSON.stringify(filteredHistory));
+          }
         }
         
         // 保存空计划

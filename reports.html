@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>训练报告 - 视力训练系统</title>
+  <script src="storage.js?v=20260421a"></script>
   <script src="menu.js?v=20260407c"></script>
   <style>
     :root {
@@ -498,9 +499,9 @@
   (function () {
     "use strict";
 
-    const STORAGE_KEY = "gabor-training-history";
     const CURRENT_USER_KEY = "vision-training-current-user";
     const TRAINING_PLAN_KEY = "vision-training-plan";
+    const trainingLabels = (window.VisionTrainingStorage && window.VisionTrainingStorage.labels) || {};
 
     // DOM 元素
     const reportForm = document.getElementById('report-form');
@@ -527,14 +528,9 @@
 
     // 加载训练历史
     function loadTrainingHistory() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-        const history = JSON.parse(raw);
-        return Array.isArray(history) ? history : [];
-      } catch (e) {
-        return [];
-      }
+      return window.VisionTrainingStorage
+        ? window.VisionTrainingStorage.loadTrainingRecords()
+        : [];
     }
 
     // 加载当前用户
@@ -568,7 +564,7 @@
       cutoffDate.setDate(now.getDate() - parseInt(days, 10));
       
       return history.filter(item => {
-        const itemDate = new Date(item.ts);
+        const itemDate = new Date(item.startedAt || item.ts || item.date);
         return itemDate >= cutoffDate;
       });
     }
@@ -589,7 +585,7 @@
       const totalSessions = history.length;
       const totalDuration = history.reduce((sum, item) => sum + (item.durationSec || 0), 0) / 60;
       const scores = history.map(item => item.score || 0);
-      const difficulties = history.map(item => item.maxK || 4);
+      const difficulties = history.map(item => item.maxK || (item.metrics && item.metrics.maxK) || 4);
       const highestScore = Math.max(...scores);
       const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
       const averageDifficulty = difficulties.reduce((sum, diff) => sum + diff, 0) / difficulties.length;
@@ -672,6 +668,7 @@
                 <thead>
                   <tr style="background: var(--panel);">
                     <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">日期</th>
+                    <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">训练类型</th>
                     <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">得分</th>
                     <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">时长</th>
                     <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #343a40;">模式</th>
@@ -682,13 +679,16 @@
         `;
         
         filteredHistory.slice().reverse().forEach(item => {
+          const maxK = item.maxK || (item.metrics && item.metrics.maxK);
+          const mode = item.mode || (item.metrics && item.metrics.mode);
           reportHTML += `
             <tr style="border-bottom: 1px solid #343a40;">
-              <td style="padding: 0.5rem;">${new Date(item.ts).toLocaleString('zh-CN')}</td>
+              <td style="padding: 0.5rem;">${new Date(item.startedAt || item.ts || item.date).toLocaleString('zh-CN')}</td>
+              <td style="padding: 0.5rem;">${item.trainingLabel || trainingLabels[item.trainingType] || item.trainingType || '未知训练'}</td>
               <td style="padding: 0.5rem;">${item.score || 0}</td>
               <td style="padding: 0.5rem;">${item.durationSec || 0}秒</td>
-              <td style="padding: 0.5rem;">${item.mode === 'auto' ? '自动' : '手动'}</td>
-              <td style="padding: 0.5rem;">${item.maxK || 4}×${item.maxK || 4}</td>
+              <td style="padding: 0.5rem;">${mode === 'auto' ? '自动' : mode === 'manual' ? '手动' : '-'}</td>
+              <td style="padding: 0.5rem;">${maxK ? `${maxK}×${maxK}` : '-'}</td>
             </tr>
           `;
         });
@@ -742,7 +742,7 @@
     function getProgressTrend(history) {
       if (history.length < 2) return '数据不足，无法分析趋势';
       
-      const sortedHistory = history.slice().sort((a, b) => new Date(a.ts) - new Date(b.ts));
+      const sortedHistory = history.slice().sort((a, b) => new Date(a.startedAt || a.ts || a.date) - new Date(b.startedAt || b.ts || b.date));
       const firstHalf = sortedHistory.slice(0, Math.floor(sortedHistory.length / 2));
       const secondHalf = sortedHistory.slice(Math.floor(sortedHistory.length / 2));
       

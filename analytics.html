@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>数据分析 - 视力训练系统</title>
+  <script src="storage.js?v=20260421a"></script>
   <script src="menu.js?v=20260407c"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -455,9 +456,9 @@
   (function () {
     "use strict";
 
-    const STORAGE_KEY = "gabor-training-history";
     const CURRENT_USER_KEY = "vision-training-current-user";
     const TRAINING_PLAN_KEY = "vision-training-plan";
+    const trainingLabels = (window.VisionTrainingStorage && window.VisionTrainingStorage.labels) || {};
 
     // DOM 元素
     const totalSessionsEl = document.getElementById('total-sessions');
@@ -474,14 +475,9 @@
 
     // 加载训练历史
     function loadTrainingHistory() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-        const history = JSON.parse(raw);
-        return Array.isArray(history) ? history : [];
-      } catch (e) {
-        return [];
-      }
+      return window.VisionTrainingStorage
+        ? window.VisionTrainingStorage.loadTrainingRecords()
+        : [];
     }
 
     // 加载当前用户
@@ -517,15 +513,12 @@
       return history.filter(item => {
         // 时间范围过滤
         if (timeRange !== 'all') {
-          const itemDate = new Date(item.ts);
+          const itemDate = new Date(item.startedAt || item.ts || item.date);
           if (itemDate < cutoffDate) return false;
         }
 
         // 训练类型过滤
-        if (trainingType !== 'all') {
-          // 这里简化处理，实际应该根据训练类型进行过滤
-          // 暂时返回所有类型
-        }
+        if (trainingType !== 'all' && item.trainingType !== trainingType && item.trainingId !== trainingType) return false;
 
         return true;
       });
@@ -572,14 +565,16 @@
       }
 
       const rows = history.slice().reverse().map(item => {
+        const maxK = item.maxK || (item.metrics && item.metrics.maxK);
+        const mode = item.mode || (item.metrics && item.metrics.mode);
         return `
           <tr>
-            <td>${formatDate(item.ts)}</td>
-            <td>Gabor配对</td>
+            <td>${formatDate(item.startedAt || item.ts || item.date)}</td>
+            <td>${item.trainingLabel || trainingLabels[item.trainingType] || item.trainingType || '未知训练'}</td>
             <td>${item.score || 0}</td>
             <td>${item.durationSec || 0}秒</td>
-            <td>${item.mode === 'auto' ? '自动' : '手动'}</td>
-            <td>${item.maxK || 4}×${item.maxK || 4}</td>
+            <td>${mode === 'auto' ? '自动' : mode === 'manual' ? '手动' : '-'}</td>
+            <td>${maxK ? `${maxK}×${maxK}` : '-'}</td>
           </tr>
         `;
       }).join('');
@@ -592,10 +587,10 @@
       const ctx = document.getElementById('progress-chart').getContext('2d');
 
       // 准备数据
-      const sortedHistory = history.slice().sort((a, b) => new Date(a.ts) - new Date(b.ts));
-      const labels = sortedHistory.map(item => formatDate(item.ts));
+      const sortedHistory = history.slice().sort((a, b) => new Date(a.startedAt || a.ts || a.date) - new Date(b.startedAt || b.ts || b.date));
+      const labels = sortedHistory.map(item => formatDate(item.startedAt || item.ts || item.date));
       const scores = sortedHistory.map(item => item.score || 0);
-      const difficulties = sortedHistory.map(item => item.maxK || 4);
+      const difficulties = sortedHistory.map(item => item.maxK || (item.metrics && item.metrics.maxK) || 4);
 
       // 销毁旧图表
       if (progressChart) {
@@ -660,14 +655,11 @@
       const ctx = document.getElementById('type-chart').getContext('2d');
 
       // 统计训练类型
-      const typeCounts = {
-        'Gabor配对': history.length,
-        '闪烁Gabor': 0,
-        '对比辨别': 0,
-        '阅读清晰度': 0,
-        '眩光测试': 0,
-        '隧道识别': 0
-      };
+      const typeCounts = history.reduce((acc, item) => {
+        const label = item.trainingLabel || trainingLabels[item.trainingType] || item.trainingType || '未知训练';
+        acc[label] = (acc[label] || 0) + 1;
+        return acc;
+      }, {});
 
       // 准备数据
       const labels = Object.keys(typeCounts);

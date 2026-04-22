@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>对比辨别二选一（Demo 3）</title>
+  <script src="storage.js?v=20260421a"></script>
   <script src="menu.js?v=20260407c"></script>
   <style>
     :root {
@@ -722,21 +723,17 @@
   }
   btnBackToPlan.addEventListener("click", function () {
     if (!currentUser) return;
-    // 保存训练结果到训练历史
-    const history = JSON.parse(localStorage.getItem('trainingHistory') || '[]');
     const trainingId = 'brightness';
     const plan = JSON.parse(localStorage.getItem('vision-training-plan') || 'null');
-    
-    history.push({
-      trainingId: trainingId,
-      date: new Date().toISOString(),
+
+    window.VisionTrainingStorage.saveTrainingRecord({
+      trainingType: trainingId,
+      endedAt: new Date().toISOString(),
       planId: plan ? plan.id : null,
       score: correct,
       total: total,
       accuracy: total > 0 ? Math.round((correct / total) * 100) : 0
     });
-    
-    localStorage.setItem('trainingHistory', JSON.stringify(history));
     
     // 返回到执行计划页面
     const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;

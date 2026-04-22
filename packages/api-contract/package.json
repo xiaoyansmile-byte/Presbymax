@@ -1,0 +1,20 @@
+{
+  "name": "@prosbymax/api-contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "echo \"api-contract lint pending\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prosbymax/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
