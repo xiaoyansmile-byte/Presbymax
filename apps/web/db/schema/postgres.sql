@@ -38,6 +38,10 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL,
   display_name TEXT NOT NULL,
   email TEXT,
+  age INTEGER,
+  gender TEXT,
+  surgery_type TEXT,
+  surgery_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   password_salt TEXT NOT NULL,
@@ -45,6 +49,10 @@ CREATE TABLE IF NOT EXISTS users (
   password_updated_at TEXT NOT NULL,
   active_plan_id TEXT
 );
+ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS surgery_type TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS surgery_at TEXT;
 
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,

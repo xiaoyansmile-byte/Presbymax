@@ -1,5 +1,7 @@
 # ProsbyMax/MCL Productization Baseline
 
+> 中文阶段报告见 [PRODUCTIZATION_BASELINE_CN.md](./PRODUCTIZATION_BASELINE_CN.md)
+
 ## Purpose
 
 This document freezes the current HTML demo as the baseline for turning the project into a production app. The current demo remains the reference implementation for training interactions, copy, page flow, and visual stimulus behavior while the new app architecture is introduced step by step.
@@ -17,6 +19,8 @@ This workspace now has a stable product milestone that can be used as the main r
 - Gabor match training session loop with plan-driven parameters
 - Admin training configuration and plan-template editors
 - SQLite local persistence with a Postgres path prepared
+- Interactive setup script for restoring the dev environment on a new machine
+- Bundle export / restore flow for moving the workspace between machines
 - Repository split for users, plans, training records, training configs, and reports
 - Smoke tests for repository, API, and auth/session flows
 - Consolidated navigation and merged user-facing pages
@@ -31,6 +35,8 @@ If later work regresses the product experience, this milestone should restore th
 - The current training session behavior
 - The current admin configuration layout
 - The current SQLite/Postgres storage boundary
+- The current interactive setup and database initialization flow
+- The current workspace bundle export and restore flow
 - The current test coverage baseline
 
 ## Current Demo Positioning

@@ -14,11 +14,33 @@ function applySchema(db) {
   db.exec(schemaSql);
 }
 
+function ensureUserProfileColumns(db) {
+  const columns = new Set(
+    db
+      .prepare("PRAGMA table_info(users)")
+      .all()
+      .map((column) => column.name)
+  );
+  const migrations = [
+    ["age", "ALTER TABLE users ADD COLUMN age INTEGER"],
+    ["gender", "ALTER TABLE users ADD COLUMN gender TEXT"],
+    ["surgery_type", "ALTER TABLE users ADD COLUMN surgery_type TEXT"],
+    ["surgery_at", "ALTER TABLE users ADD COLUMN surgery_at TEXT"]
+  ];
+
+  for (const [name, sql] of migrations) {
+    if (!columns.has(name)) {
+      db.exec(sql);
+    }
+  }
+}
+
 function ensureSchema(db) {
   applySchema(db);
+  ensureUserProfileColumns(db);
   db.prepare(`
     INSERT INTO meta (key, value)
-    VALUES ('schema_version', '2')
+    VALUES ('schema_version', '3')
     ON CONFLICT(key) DO UPDATE SET value = excluded.value
   `).run();
 }
@@ -74,9 +96,9 @@ function migrateSnapshot(db, snapshot) {
       db,
       `
         INSERT INTO users (
-          id, role, display_name, email, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
+          id, role, display_name, email, age, gender, surgery_type, surgery_at, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
         ) VALUES (
-          @id, @role, @displayName, @email, @createdAt, @updatedAt, @passwordSalt, @passwordHash, @passwordUpdatedAt, @activePlanId
+          @id, @role, @displayName, @email, @age, @gender, @surgeryType, @surgeryAt, @createdAt, @updatedAt, @passwordSalt, @passwordHash, @passwordUpdatedAt, @activePlanId
         )
       `,
       Array.isArray(snapshot.users)
@@ -85,6 +107,10 @@ function migrateSnapshot(db, snapshot) {
             role: user.role,
             displayName: user.displayName,
             email: user.email ?? null,
+            age: user.age ?? null,
+            gender: user.gender ?? null,
+            surgeryType: user.surgeryType ?? null,
+            surgeryAt: user.surgeryAt ?? null,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
             passwordSalt: user.passwordSalt,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import Link from "next/link";
 import {
   createGaborImageData,
@@ -16,6 +17,7 @@ import { loadDashboardSnapshot } from "@/lib/dashboard";
 import { loadCurrentUserFromApi } from "@/lib/auth";
 import { loadGaborMatchConfigFromApi } from "@/lib/admin-config";
 import { saveTrainingRecord } from "@/lib/training-records";
+import { CheckIcon, CloseIcon, ClockIcon, StopIcon } from "@/components/app-icons";
 
 const cellPixelSize = 112;
 
@@ -70,7 +72,7 @@ function GaborCanvas({
     <canvas
       ref={canvasRef}
       className={[
-        "h-full w-full rounded-[6px]",
+        "block h-full w-full rounded-[6px]",
         highlight ? "outline outline-2 outline-warning outline-offset-2" : ""
       ].join(" ")}
       aria-hidden="true"
@@ -97,6 +99,9 @@ export function GaborMatchShell() {
   const [finishReason, setFinishReason] = useState<FinishReason | null>(null);
   const [seed, setSeed] = useState(20260421);
   const advanceTimerRef = useRef<number | null>(null);
+  const questionRef = useRef<HTMLDivElement | null>(null);
+  const previousSessionActiveRef = useRef(false);
+  const finishSavePromiseRef = useRef<Promise<TrainingRecord> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,6 +148,29 @@ export function GaborMatchShell() {
     return () => clearAdvanceTimer();
   }, []);
 
+  useEffect(() => {
+    if (!sessionActive || previousSessionActiveRef.current) {
+      previousSessionActiveRef.current = sessionActive;
+      return;
+    }
+
+    previousSessionActiveRef.current = sessionActive;
+
+    const scrollTarget = questionRef.current;
+    if (!scrollTarget) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const isTablet = window.innerWidth >= 768 && window.innerWidth < 1280;
+      scrollTarget.scrollIntoView({
+        behavior: "smooth",
+        block: isTablet ? "center" : "start",
+        inline: "nearest"
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [sessionActive]);
+
   const puzzle = useMemo(
     () =>
       generateGaborPuzzle({
@@ -160,6 +188,9 @@ export function GaborMatchShell() {
   const formattedRemaining = sessionActive
     ? `${Math.floor(remainingSec / 60)}:${String(remainingSec % 60).padStart(2, "0")}`
     : "—";
+  const FeedbackIcon = feedback?.correct ? CheckIcon : CloseIcon;
+  const feedbackTone = feedback?.correct ? "from-red-500 to-red-600" : "from-slate-400 to-slate-500";
+  const feedbackLabel = feedback?.correct ? "正确" : "错误";
 
   function clearAdvanceTimer() {
     if (advanceTimerRef.current !== null) {
@@ -214,10 +245,22 @@ export function GaborMatchShell() {
     }
 
     const record = buildSessionRecord(finalTrials, finalScore, reason, finalGridSize);
-    void saveTrainingRecord(record);
+    const savePromise = saveTrainingRecord(record);
+    finishSavePromiseRef.current = savePromise;
+    savePromise.finally(() => {
+      if (finishSavePromiseRef.current === savePromise) {
+        finishSavePromiseRef.current = null;
+      }
+    });
     setResult(record);
     setFinishReason(reason);
     setSessionFinished(true);
+  }
+
+  async function handleReturnHome(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    await finishSavePromiseRef.current?.catch(() => undefined);
+    window.location.assign("/");
   }
 
   function queueNextTrial(nextTrials: TrialResult[], nextScore: number, nextGridSize: number) {
@@ -299,23 +342,22 @@ export function GaborMatchShell() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-      <aside className="rounded-app border border-border bg-white p-6">
+      <aside className="rounded-app border border-border bg-white p-5 sm:p-6">
         <p className="text-sm font-medium text-muted">训练模块</p>
-        <h2 className="mt-2 text-2xl font-semibold">{trainingLabels["gabor-match"]}</h2>
+        <h2 className="mt-2 text-xl font-semibold sm:text-2xl">{trainingLabels["gabor-match"]}</h2>
         <p className="mt-3 text-sm leading-6 text-muted">
           根据管理员配置执行连续训练 session，系统会记录计时、题量、得分、网格升级和刺激参数。
         </p>
 
-        <button
-          className={[
-            "mt-6 h-11 w-full rounded-app px-5 text-sm font-semibold text-white",
-            sessionActive ? "bg-danger" : "bg-primary"
-          ].join(" ")}
-          disabled={!sessionActive && !currentPlanId}
-          onClick={() => (sessionActive ? finishSession("manual") : startSession())}
-        >
-          {sessionActive ? "结束训练" : currentPlanId ? "开始训练" : "先选择计划"}
-        </button>
+        {!sessionActive ? (
+          <button
+            className="mt-6 h-11 w-full rounded-app bg-primary px-5 text-sm font-semibold text-white"
+            disabled={!currentPlanId}
+            onClick={startSession}
+          >
+            {currentPlanId ? "开始训练" : "先选择计划"}
+          </button>
+        ) : null}
 
         <div className="mt-6 space-y-3 text-sm">
           <div className="flex justify-between border-b border-border pb-3">
@@ -355,47 +397,157 @@ export function GaborMatchShell() {
         </div>
       </aside>
 
-      <section className="rounded-app border border-border bg-white p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-semibold">
+      <section className="rounded-app border border-border bg-white p-5 sm:p-6">
+        <div
+          ref={questionRef}
+          className="flex flex-col gap-4 scroll-mt-24 sm:flex-row sm:items-start sm:justify-between sm:scroll-mt-28 lg:scroll-mt-32"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted">训练题目</p>
+            <h3 className="mt-1 text-[1.15rem] font-semibold leading-tight text-slate-900 sm:text-lg">
               {!sessionActive && !sessionFinished ? "请先开始训练" : sessionFinished ? "本次训练已结束" : `第 ${trialNumber} 题：选择与提示格相同的一格`}
             </h3>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-sm leading-6 text-muted">
               {!sessionActive && !sessionFinished ? "点击左侧开始训练后，倒计时和题目会同时启动。" : "提示格不可作为答案，选择后会自动判定并进入下一题。"}
             </p>
           </div>
-          <Link className="text-sm font-semibold text-primary" href="/">
-            返回今日训练
-          </Link>
+
+          <div className="grid gap-3 sm:justify-items-end">
+            <div
+              className={[
+                "inline-flex w-full items-center gap-2 rounded-[18px] border px-4 py-3 shadow-[0_14px_26px_rgba(15,23,42,0.08)] sm:w-auto",
+                sessionActive ? "border-sky-200 bg-gradient-to-r from-sky-50 via-cyan-50 to-white" : "border-slate-200 bg-slate-50"
+              ].join(" ")}
+            >
+              <span className={[
+                "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                sessionActive ? "bg-gradient-to-br from-sky-500 to-cyan-500 text-white" : "bg-slate-100 text-slate-500"
+              ].join(" ")}>
+                <ClockIcon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="mt-0.5 text-[1.85rem] font-semibold leading-none tracking-tight text-sky-700 sm:text-[2.25rem]">
+                  {formattedRemaining}
+                </p>
+              </div>
+              {sessionActive ? (
+                <button
+                  type="button"
+                  aria-label="结束训练"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-danger text-white shadow-[0_12px_24px_rgba(239,68,68,0.18)] transition hover:bg-red-600"
+                  onClick={() => finishSession("manual")}
+                >
+                  <StopIcon className="h-6 w-6" aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+            <Link className="text-sm font-semibold text-primary sm:text-right" href="/">
+              返回今日训练
+            </Link>
+          </div>
         </div>
 
-        {sessionActive ? (
-          <div className="mt-6 grid max-w-3xl gap-3" style={{ gridTemplateColumns: `repeat(${currentGridSize}, minmax(0, 1fr))` }}>
-            {puzzle.triples.map((triple, index) => {
-              const isCue = index === cueIndex;
-              const isSelected = selectedIndex === index;
-              return (
-                <button
-                  key={`${seed}-${index}`}
+        {sessionFinished ? (
+          <div className="mt-6 rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-rose-50 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.06)] sm:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted">训练已结束</p>
+                <h4 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">
+                  本次训练已结束
+                </h4>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                  结束原因：{finishReason === "time" ? "倒计时结束" : finishReason === "max-trials" ? "达到题目上限" : "手动结束"}。
+                  {result ? "你可以先查看结果，再返回今日训练页继续下一次训练。" : "当前没有生成有效结果，可直接返回今日训练页重新开始。"}
+                </p>
+              </div>
+
+              {result ? (
+                <div className="flex flex-wrap gap-3">
+                  <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">正确率</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{result.accuracy ?? 0}%</p>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">得分</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{result.score}</p>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">完成题数</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{result.total}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link
+                className="inline-flex h-11 items-center justify-center rounded-app bg-primary px-5 text-sm font-semibold text-white"
+                href="/"
+                onClick={(event) => {
+                  void handleReturnHome(event);
+                }}
+              >
+                返回今日训练
+              </Link>
+              <button
+                className="h-11 rounded-app border border-border bg-white px-5 text-sm font-semibold text-slate-700"
+                onClick={restartSession}
+              >
+                重新开始
+              </button>
+            </div>
+          </div>
+        ) : sessionActive ? (
+          <div
+            className="relative mt-6 mx-auto aspect-square w-full"
+            style={{ maxWidth: "min(92vw, 32rem, calc(100dvh - 18rem))" }}
+          >
+            <div
+              className="grid h-full w-full gap-1 sm:gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${currentGridSize}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${currentGridSize}, minmax(0, 1fr))`
+              }}
+            >
+              {puzzle.triples.map((triple, index) => {
+                const isCue = index === cueIndex;
+                const isSelected = selectedIndex === index;
+                return (
+                  <button
+                    key={`${seed}-${index}`}
+                    className={[
+                      "min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-border bg-slate-100 p-1 transition sm:p-1.5",
+                      isCue ? "border-warning ring-2 ring-warning/40" : "border-border",
+                      isSelected ? (feedback?.correct ? "ring-2 ring-success" : "ring-2 ring-danger") : "",
+                      trialCompleted && index === answerIndex ? "border-success ring-2 ring-success/40" : ""
+                    ].join(" ")}
+                    disabled={isCue || trialCompleted || sessionFinished}
+                    onClick={() => handleSelect(index)}
+                    aria-label={isCue ? "提示格" : `候选格 ${index + 1}`}
+                  >
+                    <GaborCanvas triple={triple} config={config} highlight={isCue} />
+                  </button>
+                );
+              })}
+            </div>
+            {trialCompleted && feedback ? (
+              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                <div
                   className={[
-                    "aspect-square rounded-app border bg-slate-100 p-2 transition",
-                    isCue ? "border-warning ring-2 ring-warning/40" : "border-border",
-                    isSelected ? (feedback?.correct ? "ring-2 ring-success" : "ring-2 ring-danger") : "",
-                    trialCompleted && index === answerIndex ? "border-success ring-2 ring-success/40" : ""
+                    "flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-[0_18px_40px_rgba(15,23,42,0.18)] sm:h-28 sm:w-28",
+                    feedbackTone,
+                    "animate-[feedback-pop_850ms_ease-in-out]"
                   ].join(" ")}
-                  disabled={isCue || trialCompleted || sessionFinished}
-                  onClick={() => handleSelect(index)}
-                  aria-label={isCue ? "提示格" : `候选格 ${index + 1}`}
+                  aria-label={feedbackLabel}
                 >
-                  <GaborCanvas triple={triple} config={config} highlight={isCue} />
-                </button>
-              );
-            })}
+                  <FeedbackIcon className="h-12 w-12 sm:h-14 sm:w-14" aria-hidden="true" />
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="mt-6 flex min-h-[360px] max-w-3xl items-center justify-center rounded-app border border-dashed border-border bg-slate-50 text-sm text-muted">
-            {sessionFinished ? "训练已结束，可再次开始" : "训练未开始"}
+            训练未开始
           </div>
         )}
 
@@ -404,14 +556,6 @@ export function GaborMatchShell() {
             当前没有激活的训练计划，请先到账户页加入一个计划。
           </div>
         ) : null}
-
-        <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
-          {sessionFinished ? (
-            <button className="h-11 rounded-app border border-border px-5 text-sm font-semibold" onClick={restartSession}>
-              重新开始
-            </button>
-          ) : null}
-        </div>
 
         {trialCompleted && feedback && !sessionFinished ? (
           <div className="mt-6 rounded-app border border-border bg-slate-50 p-5">
@@ -424,15 +568,6 @@ export function GaborMatchShell() {
           </div>
         ) : null}
 
-        {sessionFinished && result ? (
-          <div className="mt-6 rounded-app border border-border bg-slate-50 p-5">
-            <p className="font-semibold">Session 已保存</p>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              结束原因：{finishReason === "time" ? "倒计时结束" : finishReason === "max-trials" ? "达到题目上限" : "手动结束"}。
-              得分 {result.score}，完成 {result.total} 题，准确率 {result.accuracy ?? 0}%，用时 {result.durationSec} 秒。
-            </p>
-          </div>
-        ) : null}
       </section>
     </div>
   );

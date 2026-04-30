@@ -50,7 +50,14 @@ export async function logoutFromApi() {
   });
 }
 
-export async function updateCurrentUserProfile(input: { displayName?: string; email?: string }) {
+export async function updateCurrentUserProfile(input: {
+  displayName?: string;
+  email?: string;
+  age?: number | null;
+  gender?: string | null;
+  surgeryType?: string | null;
+  surgeryAt?: string | null;
+}) {
   return fetchJson<AppUser>("/api/me", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

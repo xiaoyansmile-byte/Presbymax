@@ -10,15 +10,15 @@ export default async function TrainingConfigAdminPage() {
 
   return (
     <AppShell>
-      <section className="app-shell py-8 lg:py-10">
-        <div className="space-y-8">
-          <section className="app-hero rounded-[30px] p-8 md:p-10">
+      <section className="app-shell py-5 sm:py-8 lg:py-10">
+        <div className="space-y-5 sm:space-y-8">
+          <section className="app-hero rounded-[28px] p-5 sm:p-8 md:p-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm font-semibold text-white/85">
               <SettingsIcon className="h-4 w-4" aria-hidden="true" />
               训练配置
             </div>
-            <h2 className="mt-4 text-[2.6rem] font-semibold tracking-tight text-white">训练参数配置</h2>
-            <p className="mt-4 max-w-3xl text-[15px] leading-7 text-white/82">
+            <h2 className="mt-4 max-w-full text-[1.85rem] font-semibold tracking-tight text-white sm:text-[2.6rem]">训练参数配置</h2>
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/82 sm:text-[15px]">
               这些参数只面向管理员，用来控制用户训练时的倒计时、题目数量、得分规则和难度升级策略。
             </p>
           </section>
@@ -32,15 +32,15 @@ export default async function TrainingConfigAdminPage() {
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
                 你现在还没有管理员权限。请先登录管理员账号，再回来继续配置训练参数。
               </p>
-              <div className="mt-5 flex gap-3">
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  className="inline-flex h-11 items-center justify-center rounded-app bg-primary px-4 text-sm font-semibold text-white"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-app bg-primary px-4 text-sm font-semibold text-white sm:w-auto"
                   href="/auth"
                 >
                   去登录
                 </Link>
                 <Link
-                  className="inline-flex h-11 items-center justify-center rounded-app border border-border px-4 text-sm font-semibold"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-app border border-border px-4 text-sm font-semibold sm:w-auto"
                   href="/"
                 >
                   返回首页

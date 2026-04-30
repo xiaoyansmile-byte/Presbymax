@@ -1,5 +1,10 @@
-import { redirect } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { PlansOverview } from "@/components/plans/plans-overview";
 
 export default function PlansPage() {
-  redirect("/account#plans");
+  return (
+    <AppShell>
+      <PlansOverview />
+    </AppShell>
+  );
 }

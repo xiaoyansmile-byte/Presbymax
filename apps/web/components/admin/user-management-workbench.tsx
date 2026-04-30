@@ -35,7 +35,7 @@ export function UserManagementWorkbench() {
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-3">
         <StatCard label="用户总数" value={users.length} tone="blue" />
         <StatCard label="管理员" value={adminCount} tone="green" />
         <StatCard label="活跃计划" value={activePlanCount} tone="violet" />

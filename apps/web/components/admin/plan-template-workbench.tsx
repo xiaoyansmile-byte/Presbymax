@@ -38,6 +38,7 @@ function createBlankTemplate(): PlanTemplate {
 export function PlanTemplateWorkbench() {
   const [templates, setTemplates] = useState<PlanTemplate[]>([]);
   const [versions, setVersions] = useState<PlanTemplateVersion[]>([]);
+  const [activeTemplateIndex, setActiveTemplateIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -47,11 +48,19 @@ export function PlanTemplateWorkbench() {
       if (cancelled) return;
       setTemplates(nextTemplates ?? []);
       setVersions(nextVersions ?? []);
+      setActiveTemplateIndex(0);
     });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setActiveTemplateIndex((current) => {
+      if (templates.length === 0) return 0;
+      return Math.min(current, templates.length - 1);
+    });
+  }, [templates.length]);
 
   const stats = useMemo(
     () => ({
@@ -63,13 +72,15 @@ export function PlanTemplateWorkbench() {
     [templates]
   );
 
-  function updateTemplateField(index: number, field: keyof Pick<PlanTemplate, "id" | "name" | "sessionDurationText" | "description">, value: string) {
+  const activeTemplate = templates[activeTemplateIndex] ?? templates[0] ?? null;
+
+  function updateTemplateField(
+    index: number,
+    field: keyof Pick<PlanTemplate, "id" | "name" | "sessionDurationText" | "description">,
+    value: string
+  ) {
     setMessage(null);
-    setTemplates((current) =>
-      current.map((template, currentIndex) =>
-        currentIndex === index ? { ...template, [field]: value } : template
-      )
-    );
+    setTemplates((current) => current.map((template, currentIndex) => (currentIndex === index ? { ...template, [field]: value } : template)));
   }
 
   function updateTemplateNumberField(index: number, field: keyof Pick<PlanTemplate, "durationWeeks" | "sessionsPerWeek">, value: string) {
@@ -82,12 +93,7 @@ export function PlanTemplateWorkbench() {
     );
   }
 
-  function updateTrainingField(
-    templateIndex: number,
-    trainingIndex: number,
-    field: keyof TrainingItem,
-    value: string
-  ) {
+  function updateTrainingField(templateIndex: number, trainingIndex: number, field: keyof TrainingItem, value: string) {
     setMessage(null);
     setTemplates((current) =>
       current.map((template, currentIndex) => {
@@ -107,21 +113,32 @@ export function PlanTemplateWorkbench() {
 
   function addTemplate() {
     setMessage(null);
-    setTemplates((current) => [...current, createBlankTemplate()]);
+    setTemplates((current) => {
+      const next = [...current, createBlankTemplate()];
+      setActiveTemplateIndex(next.length - 1);
+      return next;
+    });
   }
 
   function removeTemplate(index: number) {
     setMessage(null);
-    setTemplates((current) => current.filter((_, currentIndex) => currentIndex !== index));
+    setTemplates((current) => {
+      const next = current.filter((_, currentIndex) => currentIndex !== index);
+      setActiveTemplateIndex((currentActive) => {
+        if (next.length === 0) return 0;
+        if (currentActive < index) return currentActive;
+        if (currentActive > index) return currentActive - 1;
+        return Math.max(0, Math.min(index, next.length - 1));
+      });
+      return next;
+    });
   }
 
   function addTraining(templateIndex: number) {
     setMessage(null);
     setTemplates((current) =>
       current.map((template, currentIndex) =>
-        currentIndex === templateIndex
-          ? { ...template, trainings: [...template.trainings, createBlankTraining()] }
-          : template
+        currentIndex === templateIndex ? { ...template, trainings: [...template.trainings, createBlankTraining()] } : template
       )
     );
   }
@@ -158,96 +175,126 @@ export function PlanTemplateWorkbench() {
     setMessage("计划模板已保存。");
   }
 
+  async function saveActiveTemplate() {
+    await save();
+  }
+
   if (templates.length === 0) {
     return <div className="rounded-app border border-border bg-white p-6 text-sm text-muted">正在加载计划模板...</div>;
   }
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="模板数" value={stats.templates} tone="blue" />
         <StatCard label="启用模板" value={stats.activeTemplates} tone="green" />
         <StatCard label="训练项总数" value={stats.trainings} tone="violet" />
         <StatCard label="总周期周数" value={stats.durationWeeks} tone="amber" />
       </section>
 
-      <section className="rounded-app border border-border bg-white p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">计划模板目录</h3>
-            <p className="mt-1 text-sm text-muted">这里定义用户注册时可选的训练计划，以及每个计划包含的训练项目和周期。</p>
+      <section className="rounded-app border border-border bg-white">
+        <div className="border-b border-border px-4 py-4 sm:px-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">计划模板目录</h3>
+              <p className="mt-1 text-sm text-muted">这里定义用户注册时可选的训练计划，以及每个计划包含的训练项目和周期。</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button type="button" className="h-10 w-full rounded-app border border-border px-4 text-sm font-semibold sm:w-auto" onClick={addTemplate}>
+                新建模板
+              </button>
+              <button
+                type="button"
+                className="h-10 w-full rounded-app bg-primary px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
+                disabled={saving}
+                onClick={() => void save()}
+              >
+                {saving ? "保存中..." : "保存全部模板"}
+              </button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button type="button" className="h-10 rounded-app border border-border px-4 text-sm font-semibold" onClick={addTemplate}>
-              新建模板
-            </button>
-            <button
-              type="button"
-              className="h-10 rounded-app bg-primary px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-              disabled={saving}
-              onClick={() => void save()}
-            >
-              {saving ? "保存中..." : "保存全部模板"}
-            </button>
+          {message ? <p className="mt-4 text-sm text-muted">{message}</p> : null}
+        </div>
+
+        <div className="border-b border-border px-3 py-3 sm:px-4">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {templates.map((template, index) => {
+              const active = index === activeTemplateIndex;
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => setActiveTemplateIndex(index)}
+                  className={[
+                    "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition",
+                    active ? "bg-primary text-white shadow-[0_10px_18px_rgba(37,99,235,0.20)]" : "border border-border bg-slate-50 text-slate-600 hover:bg-slate-100"
+                  ].join(" ")}
+                >
+                  {template.name || "未命名模板"}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {message ? <p className="mt-4 text-sm text-muted">{message}</p> : null}
-      </section>
-
-      <div className="space-y-6">
-        {templates.map((template, templateIndex) => (
-          <article key={template.id} className="rounded-app border border-border bg-white">
-            <div className="border-b border-border px-6 py-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">模板 {templateIndex + 1}</h3>
-                  <p className="mt-1 text-sm text-muted">编辑用户注册后可选的训练计划内容。</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 rounded-app border border-border px-3 py-2 text-sm font-semibold">
-                    <input
-                      type="checkbox"
-                      checked={template.status === "active"}
-                      onChange={(event) =>
-                        setTemplates((current) =>
-                          current.map((item, currentIndex) =>
-                            currentIndex === templateIndex
-                              ? { ...item, status: event.target.checked ? "active" : "archived" }
-                              : item
-                          )
+        {activeTemplate ? (
+          <div className="p-4 sm:p-6">
+            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">{activeTemplate.name || "未命名模板"}</h3>
+                <p className="mt-1 text-sm text-muted">编辑当前标签页的训练计划内容。</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2 rounded-app border border-border px-3 py-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={activeTemplate.status === "active"}
+                    onChange={(event) =>
+                      setTemplates((current) =>
+                        current.map((item, currentIndex) =>
+                          currentIndex === activeTemplateIndex
+                            ? { ...item, status: event.target.checked ? "active" : "archived" }
+                            : item
                         )
-                      }
-                    />
-                    启用
-                  </label>
-                  <button
-                    type="button"
-                    className="h-9 rounded-app border border-border px-3 text-sm font-semibold text-danger"
-                    onClick={() => removeTemplate(templateIndex)}
-                  >
-                    删除模板
-                  </button>
-                </div>
+                      )
+                    }
+                  />
+                  启用
+                </label>
+                <button
+                  type="button"
+                  className="h-9 rounded-app border border-border px-3 text-sm font-semibold text-danger"
+                  onClick={() => removeTemplate(activeTemplateIndex)}
+                >
+                  删除当前模板
+                </button>
+                <button
+                  type="button"
+                  className="h-9 rounded-app bg-primary px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                  disabled={saving}
+                  onClick={() => void saveActiveTemplate()}
+                >
+                  {saving ? "保存中..." : "保存当前模板"}
+                </button>
               </div>
             </div>
 
-            <div className="grid gap-8 p-6 lg:grid-cols-[1fr_1fr]">
+            <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
               <div className="space-y-5">
                 <label className="block">
                   <span className="text-sm font-semibold">模板 ID</span>
                   <input
                     className="mt-2 h-11 w-full rounded-app border border-border px-3"
-                    value={template.id}
-                    onChange={(event) => updateTemplateField(templateIndex, "id", event.target.value)}
+                    value={activeTemplate.id}
+                    onChange={(event) => updateTemplateField(activeTemplateIndex, "id", event.target.value)}
                   />
                 </label>
                 <label className="block">
                   <span className="text-sm font-semibold">模板名称</span>
                   <input
                     className="mt-2 h-11 w-full rounded-app border border-border px-3"
-                    value={template.name}
-                    onChange={(event) => updateTemplateField(templateIndex, "name", event.target.value)}
+                    value={activeTemplate.name}
+                    onChange={(event) => updateTemplateField(activeTemplateIndex, "name", event.target.value)}
                   />
                 </label>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -257,8 +304,8 @@ export function PlanTemplateWorkbench() {
                       className="mt-2 h-11 w-full rounded-app border border-border px-3"
                       type="number"
                       min={1}
-                      value={template.durationWeeks}
-                      onChange={(event) => updateTemplateNumberField(templateIndex, "durationWeeks", event.target.value)}
+                      value={activeTemplate.durationWeeks}
+                      onChange={(event) => updateTemplateNumberField(activeTemplateIndex, "durationWeeks", event.target.value)}
                     />
                   </label>
                   <label className="block">
@@ -267,8 +314,8 @@ export function PlanTemplateWorkbench() {
                       className="mt-2 h-11 w-full rounded-app border border-border px-3"
                       type="number"
                       min={1}
-                      value={template.sessionsPerWeek}
-                      onChange={(event) => updateTemplateNumberField(templateIndex, "sessionsPerWeek", event.target.value)}
+                      value={activeTemplate.sessionsPerWeek}
+                      onChange={(event) => updateTemplateNumberField(activeTemplateIndex, "sessionsPerWeek", event.target.value)}
                     />
                   </label>
                 </div>
@@ -276,45 +323,45 @@ export function PlanTemplateWorkbench() {
                   <span className="text-sm font-semibold">单次训练时长文案</span>
                   <input
                     className="mt-2 h-11 w-full rounded-app border border-border px-3"
-                    value={template.sessionDurationText}
-                    onChange={(event) => updateTemplateField(templateIndex, "sessionDurationText", event.target.value)}
+                    value={activeTemplate.sessionDurationText}
+                    onChange={(event) => updateTemplateField(activeTemplateIndex, "sessionDurationText", event.target.value)}
                   />
                 </label>
                 <label className="block">
                   <span className="text-sm font-semibold">模板描述</span>
                   <textarea
                     className="mt-2 min-h-28 w-full rounded-app border border-border px-3 py-2"
-                    value={template.description}
-                    onChange={(event) => updateTemplateField(templateIndex, "description", event.target.value)}
+                    value={activeTemplate.description}
+                    onChange={(event) => updateTemplateField(activeTemplateIndex, "description", event.target.value)}
                   />
                 </label>
                 <div className="rounded-app border border-border bg-slate-50 p-4 text-sm text-muted">
-                  当前状态：{template.status === "active" ? "启用" : "停用"}。停用后该模板不会出现在用户注册选择中。
+                  当前状态：{activeTemplate.status === "active" ? "启用" : "停用"}。停用后该模板不会出现在用户注册选择中。
                 </div>
               </div>
 
               <div className="space-y-5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <h4 className="text-sm font-semibold">包含的训练项目</h4>
                   <button
                     type="button"
-                    className="h-9 rounded-app border border-border px-3 text-sm font-semibold"
-                    onClick={() => addTraining(templateIndex)}
+                    className="h-9 w-full rounded-app border border-border px-3 text-sm font-semibold sm:w-auto"
+                    onClick={() => addTraining(activeTemplateIndex)}
                   >
                     添加项目
                   </button>
                 </div>
 
                 <div className="space-y-4">
-                  {template.trainings.map((training, trainingIndex) => (
-                    <div key={`${template.id}-${trainingIndex}`} className="rounded-app border border-border bg-slate-50 p-4">
+                  {activeTemplate.trainings.map((training, trainingIndex) => (
+                    <div key={`${activeTemplate.id}-${trainingIndex}`} className="rounded-app border border-border bg-slate-50 p-4">
                       <div className="grid gap-3 md:grid-cols-[1.2fr_0.8fr_1fr_auto] md:items-end">
                         <label className="block">
                           <span className="text-xs font-semibold text-muted">训练项目</span>
                           <select
                             className="mt-2 h-10 w-full rounded-app border border-border px-3"
                             value={training.id}
-                            onChange={(event) => updateTrainingField(templateIndex, trainingIndex, "id", event.target.value)}
+                            onChange={(event) => updateTrainingField(activeTemplateIndex, trainingIndex, "id", event.target.value)}
                           >
                             {trainingTypeOptions.map(([id, label]) => (
                               <option key={id} value={id}>
@@ -328,7 +375,7 @@ export function PlanTemplateWorkbench() {
                           <select
                             className="mt-2 h-10 w-full rounded-app border border-border px-3"
                             value={training.priority}
-                            onChange={(event) => updateTrainingField(templateIndex, trainingIndex, "priority", event.target.value)}
+                            onChange={(event) => updateTrainingField(activeTemplateIndex, trainingIndex, "priority", event.target.value)}
                           >
                             <option value="high">高</option>
                             <option value="medium">中</option>
@@ -340,13 +387,13 @@ export function PlanTemplateWorkbench() {
                           <input
                             className="mt-2 h-10 w-full rounded-app border border-border px-3"
                             value={training.frequency}
-                            onChange={(event) => updateTrainingField(templateIndex, trainingIndex, "frequency", event.target.value)}
+                            onChange={(event) => updateTrainingField(activeTemplateIndex, trainingIndex, "frequency", event.target.value)}
                           />
                         </label>
                         <button
                           type="button"
-                          className="h-10 rounded-app border border-border px-3 text-sm font-semibold text-danger"
-                          onClick={() => removeTraining(templateIndex, trainingIndex)}
+                          className="h-10 rounded-app border border-border px-3 text-sm font-semibold text-danger md:w-auto"
+                          onClick={() => removeTraining(activeTemplateIndex, trainingIndex)}
                         >
                           删除
                         </button>
@@ -356,40 +403,25 @@ export function PlanTemplateWorkbench() {
                 </div>
               </div>
             </div>
-          </article>
-        ))}
-      </div>
-
-      <section className="rounded-app border border-border bg-white">
-        <div className="border-b border-border px-6 py-4">
-          <h3 className="text-lg font-semibold">版本历史</h3>
-          <p className="mt-1 text-sm text-muted">最近保存的模板变更记录，包含版本号、保存时间和模板数量。</p>
-        </div>
-        <div className="divide-y divide-border">
-          {versions.length > 0 ? (
-            versions.slice(0, 6).map((version) => (
-              <div key={version.id} className="grid gap-3 px-6 py-4 md:grid-cols-[auto_1fr_auto] md:items-center">
-                <div>
-                  <p className="text-sm font-semibold">版本 {version.version}</p>
-                  <p className="mt-1 text-xs text-muted">{new Date(version.changedAt).toLocaleString("zh-CN")}</p>
-                </div>
-                <div className="text-sm text-muted">
-                  <p>模板数 {version.templates.length}</p>
-                  <p className="mt-1">
-                    {version.notes ? version.notes : "无备注"}
-                  </p>
-                </div>
-                <div className="text-sm text-muted md:text-right">
-                  <p>{version.changedBy ?? "系统"}</p>
-                  <p className="mt-1">ID {version.id}</p>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="px-6 py-8 text-sm text-muted">暂无版本历史。</div>
-          )}
-        </div>
+          </div>
+        ) : null}
       </section>
+
+      {versions.length > 0 ? (
+        <section className="rounded-app border border-border bg-white p-5 sm:p-6">
+          <h3 className="text-lg font-semibold">最近版本</h3>
+          <p className="mt-1 text-sm text-muted">最新保存的模板版本会按时间顺序保留，方便回看修改历史。</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {versions.slice(0, 3).map((version) => (
+              <article key={version.id} className="rounded-app border border-border bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">v{version.version}</p>
+                <p className="mt-1 text-sm text-muted">{new Date(version.changedAt).toLocaleString("zh-CN")}</p>
+                <p className="mt-2 text-sm text-slate-600">{version.notes ?? "无备注"}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

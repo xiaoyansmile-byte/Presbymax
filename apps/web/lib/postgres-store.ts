@@ -31,6 +31,10 @@ type UserRow = {
   role: AppUser["role"];
   display_name: string;
   email: string | null;
+  age: number | null;
+  gender: AppUser["gender"] | null;
+  surgery_type: AppUser["surgeryType"] | null;
+  surgery_at: string | null;
   created_at: string;
   updated_at: string;
   password_salt: string;
@@ -140,6 +144,10 @@ function mapUser(row: UserRow) {
     role: row.role,
     displayName: row.display_name,
     email: row.email,
+    age: row.age,
+    gender: row.gender,
+    surgeryType: row.surgery_type,
+    surgeryAt: row.surgery_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     passwordSalt: row.password_salt,
@@ -225,7 +233,7 @@ export async function loadPostgresStore(): Promise<PersistentStore | null> {
 
   const users = (await db.query<UserRow>(
     `
-      SELECT id, role, display_name, email, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
+      SELECT id, role, display_name, email, age, gender, surgery_type, surgery_at, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
       FROM users
       ORDER BY created_at ASC
     `
@@ -321,7 +329,7 @@ export async function loadPostgresStore(): Promise<PersistentStore | null> {
   const planCatalog = normalizePlanCatalog(planCatalogRaw ?? fallback.planCatalog, seedPlanCatalog);
 
   return {
-    version: Number((await db.query<{ value: string }>("SELECT value FROM meta WHERE key = 'schema_version' LIMIT 1")).rows[0]?.value ?? "2"),
+    version: Number((await db.query<{ value: string }>("SELECT value FROM meta WHERE key = 'schema_version' LIMIT 1")).rows[0]?.value ?? "3"),
     users: users.map(mapUser),
     sessions: sessions.map((session) => ({
       token: session.token,
@@ -398,23 +406,27 @@ export async function persistPostgresStore(store: PersistentStore): Promise<void
 
     for (const user of normalizedStore.users) {
       await client.query(
-        `
-          INSERT INTO users (
-            id, role, display_name, email, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-          )
-        `,
-        [
-          user.id,
-          user.role,
-          user.displayName,
-          user.email,
-          user.createdAt,
-          user.updatedAt,
-          user.passwordSalt,
-          user.passwordHash,
-          user.passwordUpdatedAt,
+    `
+        INSERT INTO users (
+          id, role, display_name, email, age, gender, surgery_type, surgery_at, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+        )
+      `,
+      [
+        user.id,
+        user.role,
+        user.displayName,
+        user.email,
+        user.age ?? null,
+        user.gender ?? null,
+        user.surgeryType ?? null,
+        user.surgeryAt ?? null,
+        user.createdAt,
+        user.updatedAt,
+        user.passwordSalt,
+        user.passwordHash,
+        user.passwordUpdatedAt,
           user.activePlanId
         ]
       );

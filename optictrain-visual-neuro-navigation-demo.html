@@ -62,12 +62,12 @@
 
     .panel {
       min-width: 240px;
-      border: 1px solid var(--panel-border);
-      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
       padding: 10px 12px;
-      background: var(--panel);
-      backdrop-filter: blur(4px);
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
       pointer-events: auto;
     }
 
@@ -88,8 +88,8 @@
     }
 
     .value {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 19px;
+      font-weight: 800;
       letter-spacing: 0.01em;
       color: var(--accent);
     }
@@ -314,12 +314,36 @@
         margin-top: 3px;
       }
 
-      .stats-panel .row {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 4px 8px;
-        align-items: center;
-      }
+    .stats-panel .row {
+      display: grid;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .stats-panel .row:nth-of-type(1) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .stats-panel .row:nth-of-type(2),
+    .stats-panel .row:nth-of-type(3) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stats-panel .row > span {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 4px;
+    }
+
+    .stats-panel .row > span strong {
+      display: block;
+      font-size: 1.35em;
+      font-weight: 800;
+      line-height: 1;
+    }
 
       .progress-panel .row {
         display: grid;
@@ -328,7 +352,6 @@
         align-items: center;
       }
 
-      .stats-panel .row > span,
       .progress-panel .row > span {
         white-space: nowrap;
       }
@@ -442,6 +465,7 @@
         score: 0,
         gaborScore: 0,
         driveScore: 0,
+        diamondsCollected: 0,
         collisions: 0,
         mistakes: 0,
         currentCpd: CPD_LEVELS[0],
@@ -466,6 +490,13 @@
         feedbackType: "",
         manualContrast: 0.8,
         autoContrastPhase: 0,
+        carEffect: {
+          type: null,
+          timer: 0,
+          duration: 0,
+          intensity: 0,
+          particles: []
+        },
         gaborTextureCache: new Map(),
         spriteCache: new Map()
       };
@@ -492,6 +523,10 @@
         return Math.random() * (max - min) + min;
       }
 
+      function randomSigned(min, max) {
+        return (Math.random() > 0.5 ? 1 : -1) * randomIn(min, max);
+      }
+
       function pickLane() {
         const lanes = [-1, 0, 1];
         return lanes[(Math.random() * lanes.length) | 0];
@@ -507,87 +542,58 @@
         return types[(Math.random() * types.length) | 0];
       }
 
-      function spriteMarkup(name) {
-        const sprites = {
-          cone: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-            <ellipse cx="90" cy="160" rx="62" ry="14" fill="#1f1f1f" opacity=".25"/>
-            <path d="M90 24 L36 142 H144 Z" fill="#ff7d2f"/>
-            <rect x="50" y="76" width="80" height="16" fill="#f6f6f6"/>
-            <rect x="44" y="104" width="92" height="18" fill="#f6f6f6"/>
-            <rect x="30" y="142" width="120" height="18" rx="8" fill="#363636"/>
-          </svg>`,
-          bin: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-            <ellipse cx="90" cy="164" rx="58" ry="12" fill="#1f1f1f" opacity=".25"/>
-            <rect x="46" y="50" width="88" height="100" rx="10" fill="#4a83df"/>
-            <rect x="38" y="38" width="104" height="18" rx="6" fill="#3a64b2"/>
-            <rect x="60" y="64" width="10" height="76" fill="#8eb4f6" opacity=".45"/>
-            <rect x="84" y="64" width="10" height="76" fill="#8eb4f6" opacity=".45"/>
-            <rect x="108" y="64" width="10" height="76" fill="#8eb4f6" opacity=".45"/>
-          </svg>`,
-          rock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-            <ellipse cx="90" cy="164" rx="58" ry="12" fill="#1f1f1f" opacity=".25"/>
-            <path d="M34 132 L56 72 L104 44 L146 76 L136 132 Z" fill="#7c8188"/>
-            <path d="M56 72 L104 44 L90 88 Z" fill="#9aa0a8"/>
-            <path d="M90 88 L146 76 L136 132 Z" fill="#666b73"/>
-          </svg>`,
-          diamond: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-            <ellipse cx="90" cy="160" rx="44" ry="12" fill="#1f1f1f" opacity=".25"/>
-            <path d="M90 24 L134 76 L90 146 L46 76 Z" fill="#68eaff"/>
-            <path d="M90 24 L118 76 L90 146 Z" fill="#90f6ff"/>
-            <path d="M46 76 L90 76 L90 146 Z" fill="#4acfe9"/>
-            <path d="M134 76 L90 76 L90 146 Z" fill="#37bdd8"/>
-            <polyline points="46,76 90,76 134,76" fill="none" stroke="#e3fdff" stroke-width="6"/>
-          </svg>`,
-          tree: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
-            <ellipse cx="110" cy="236" rx="62" ry="14" fill="#1f1f1f" opacity=".2"/>
-            <rect x="96" y="144" width="28" height="88" rx="8" fill="#7d5334"/>
-            <circle cx="110" cy="86" r="62" fill="#2c9a4f"/>
-            <circle cx="74" cy="110" r="36" fill="#37ad5b"/>
-            <circle cx="146" cy="110" r="36" fill="#37ad5b"/>
-          </svg>`,
-          building: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320">
-            <ellipse cx="110" cy="300" rx="72" ry="16" fill="#1f1f1f" opacity=".2"/>
-            <rect x="44" y="32" width="132" height="260" rx="8" fill="#4a505a"/>
-            <rect x="64" y="56" width="20" height="24" fill="#f7cf78"/>
-            <rect x="100" y="56" width="20" height="24" fill="#f7cf78"/>
-            <rect x="136" y="56" width="20" height="24" fill="#f7cf78"/>
-            <rect x="64" y="98" width="20" height="24" fill="#f7cf78"/>
-            <rect x="100" y="98" width="20" height="24" fill="#f7cf78"/>
-            <rect x="136" y="98" width="20" height="24" fill="#f7cf78"/>
-            <rect x="64" y="140" width="20" height="24" fill="#f7cf78"/>
-            <rect x="100" y="140" width="20" height="24" fill="#f7cf78"/>
-            <rect x="136" y="140" width="20" height="24" fill="#f7cf78"/>
-            <rect x="92" y="214" width="36" height="78" fill="#343941"/>
-          </svg>`,
-          car: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360">
-            <ellipse cx="120" cy="334" rx="78" ry="18" fill="#1f1f1f" opacity=".28"/>
-            <rect x="64" y="48" width="112" height="258" rx="38" fill="#f2f5f8"/>
-            <rect x="78" y="74" width="84" height="82" rx="20" fill="#25303c"/>
-            <rect x="78" y="176" width="84" height="76" rx="14" fill="#dce3ea"/>
-            <rect x="72" y="270" width="24" height="18" rx="4" fill="#ff4a4a"/>
-            <rect x="144" y="270" width="24" height="18" rx="4" fill="#ff4a4a"/>
-            <rect x="58" y="110" width="10" height="60" rx="5" fill="#3b4048"/>
-            <rect x="172" y="110" width="10" height="60" rx="5" fill="#3b4048"/>
-          </svg>`
-        };
-        return sprites[name];
+      function pickBuildingSprite() {
+        const options = ["building-city", "building-blocks"];
+        return options[(Math.random() * options.length) | 0];
       }
+
+      function canSpawnSceneryOnSide(side) {
+        // Prevent props from spawning on top of each other on the same roadside.
+        return !state.scenery.some((item) => item.side === side && item.depth < 0.18);
+      }
+
+      // In product, this demo is served from `/api/legacy-demos/*` (same origin).
+      // Use a root-relative asset path there, but fall back to relative paths when opened as a local file.
+      const ASSET_PREFIX = window.location.origin === "null" ? "" : "/";
+
+      const SPRITE_SOURCES = {
+        cone: { src: `${ASSET_PREFIX}assets/optictrain/icons8-vlc-100.png` },
+        bin: { src: `${ASSET_PREFIX}assets/optictrain/icons8-full-trash-100.png` },
+        rock: { src: `${ASSET_PREFIX}assets/optictrain/icons8-rock-100.png` },
+        diamond: { src: `${ASSET_PREFIX}assets/optictrain/icons8-diamond-100.png` },
+        tree: { src: `${ASSET_PREFIX}assets/optictrain/icons8-forest-100.png` },
+        "building-city": { src: `${ASSET_PREFIX}assets/optictrain/icons8-city-94.png` },
+        "building-blocks": { src: `${ASSET_PREFIX}assets/optictrain/icons8-city-buildings-94.png` },
+        car: { src: `${ASSET_PREFIX}assets/optictrain/icons8-car-top-view-100-head-up.png` }
+      };
 
       function getSprite(name) {
         if (!state.spriteCache.has(name)) {
+          const sprite = SPRITE_SOURCES[name];
+          if (!sprite || !sprite.src) return null;
           const img = new Image();
-          img.src = `data:image/svg+xml;utf8,${encodeURIComponent(spriteMarkup(name))}`;
+          img.src = sprite.src;
           state.spriteCache.set(name, img);
         }
+
         return state.spriteCache.get(name);
       }
 
       function drawSprite(name, x, y, w, h, alpha = 1) {
         const img = getSprite(name);
         if (!img || !img.complete) return;
+        // `img.complete` can be true even when loading fails (naturalWidth = 0); avoid throwing in drawImage().
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        const sprite = SPRITE_SOURCES[name] ?? {};
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.drawImage(img, x - w / 2, y - h, w, h);
+        if (sprite.rotate) {
+          ctx.translate(x, y - h / 2);
+          ctx.rotate(sprite.rotate);
+          ctx.drawImage(img, -w / 2, -h / 2, w, h);
+        } else {
+          ctx.drawImage(img, x - w / 2, y - h, w, h);
+        }
         ctx.restore();
       }
 
@@ -629,11 +635,21 @@
       }
 
       function spawnScenery() {
+        const sideOptions = [-1, 1].filter((side) => canSpawnSceneryOnSide(side));
+        if (sideOptions.length === 0) return false;
+
+        const side = sideOptions[(Math.random() * sideOptions.length) | 0];
+        const type = pickSceneryType();
         state.scenery.push({
-          side: Math.random() > 0.5 ? 1 : -1,
-          type: pickSceneryType(),
-          depth: 0.02
+          side,
+          type,
+          depth: 0.02,
+          sprite: type === "tree" ? "tree" : pickBuildingSprite(),
+          sizeScale: type === "tree" ? 1 : randomIn(0.78, 1.28),
+          widthScale: type === "tree" ? 1 : randomIn(0.82, 1.08),
+          heightScale: type === "tree" ? 1 : randomIn(0.88, 1.3)
         });
+        return true;
       }
 
       function randomOrientation() {
@@ -777,6 +793,50 @@
         });
       }
 
+      function zoneAngle(key) {
+        const angles = {
+          "top-left": -Math.PI / 4,
+          top: 0,
+          "top-right": Math.PI / 4,
+          left: -Math.PI / 2,
+          right: Math.PI / 2,
+          "bottom-left": (-3 * Math.PI) / 4,
+          bottom: Math.PI,
+          "bottom-right": (3 * Math.PI) / 4
+        };
+        return angles[key] ?? 0;
+      }
+
+      function drawHintMarker(zone) {
+        const size = Math.max(28, Math.min(zone.w, zone.h) * 0.38);
+        const radius = size * 0.52;
+        ctx.save();
+        ctx.translate(zone.cx, zone.cy);
+        ctx.rotate(zoneAngle(zone.key));
+        ctx.shadowColor = "rgba(0,0,0,0.24)";
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = "rgba(31, 56, 76, 0.64)";
+        ctx.strokeStyle = "rgba(255,255,255,0.28)";
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(255,255,255,0.94)";
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(0, radius * 0.22);
+        ctx.lineTo(0, -radius * 0.16);
+        ctx.moveTo(-radius * 0.16, -radius * 0.02);
+        ctx.lineTo(0, -radius * 0.18);
+        ctx.lineTo(radius * 0.16, -radius * 0.02);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       function setMode(mode) {
         state.mode = mode;
         modeEl.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
@@ -805,6 +865,40 @@
         } else {
           state.driveScore += value;
         }
+      }
+
+      function triggerCarEffect(type) {
+        const priority = type === "collision" ? 2 : 1;
+        const currentPriority = state.carEffect.type === "collision" ? 2 : state.carEffect.type === "diamond" ? 1 : 0;
+        if (priority < currentPriority) return;
+
+        const particles = [];
+        const particleCount = type === "collision" ? 10 : 8;
+        const palette = type === "collision"
+          ? ["rgba(255,92,92,0.92)", "rgba(255,168,84,0.9)", "rgba(255,255,255,0.82)"]
+          : ["rgba(87,211,255,0.92)", "rgba(167,241,255,0.9)", "rgba(255,255,255,0.82)"];
+
+        for (let i = 0; i < particleCount; i += 1) {
+          const angle = (Math.PI * 2 * i) / particleCount + randomSigned(0, 0.22);
+          const speed = type === "collision" ? randomIn(52, 148) : randomIn(42, 112);
+          particles.push({
+            x: randomSigned(2, 8),
+            y: randomSigned(2, 8),
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - (type === "collision" ? randomIn(10, 24) : randomIn(6, 16)),
+            life: randomIn(0.28, 0.56),
+            size: type === "collision" ? randomIn(3, 7) : randomIn(2, 5),
+            color: palette[i % palette.length]
+          });
+        }
+
+        state.carEffect = {
+          type,
+          timer: 0,
+          duration: type === "collision" ? 0.72 : 0.58,
+          intensity: type === "collision" ? 1 : 0.9,
+          particles
+        };
       }
 
       function startChallenge(fromSign) {
@@ -860,6 +954,9 @@
         remainingEl.textContent = formatClock(left);
         percentEl.textContent = `${percent.toFixed(1)}%`;
         progressBarEl.style.width = `${percent}%`;
+        if (typeof postBridge === "function") {
+          postBridge("hud-update", {}, false);
+        }
       }
 
       function updatePlayer(dt) {
@@ -888,6 +985,7 @@
             ob.hit = true;
             state.collisions += 1;
             showFeedback("Collision", "bad");
+            triggerCarEffect("collision");
           }
           if (!ob.hit && !ob.scored && ob.depth > 1.02) {
             ob.scored = true;
@@ -901,8 +999,10 @@
           const rx = laneToWorldX(reward.lane, reward.depth);
           if (!reward.got && reward.depth > 0.84 && Math.abs(rx - px) < state.width * 0.06) {
             reward.got = true;
+            state.diamondsCollected += 1;
             scoreAdd(20, "drive");
             showFeedback("Reward +20", "ok");
+            triggerCarEffect("diamond");
           }
         }
         state.rewards = state.rewards.filter((r) => !r.got && r.depth < 1.12);
@@ -945,11 +1045,11 @@
         }
 
         if (state.scenerySpawn <= 0) {
-          spawnScenery();
-          if (Math.random() > 0.62) {
+          const spawned = spawnScenery();
+          if (spawned && Math.random() > 0.5) {
             spawnScenery();
           }
-          state.scenerySpawn = randomIn(0.6, 1.2);
+          state.scenerySpawn = randomIn(0.3, 0.78);
         }
 
         if (!state.gaborSign && state.gaborSpawn <= 0) {
@@ -992,6 +1092,31 @@
               setMode("roaming");
             }
           }
+        }
+      }
+
+      function updateCarEffect(dt) {
+        const effect = state.carEffect;
+        if (!effect.type) return;
+
+        effect.timer += dt;
+        effect.particles = effect.particles.filter((particle) => {
+          particle.life -= dt;
+          particle.x += particle.vx * dt;
+          particle.y += particle.vy * dt;
+          particle.vy += effect.type === "collision" ? 220 * dt : 150 * dt;
+          particle.vx *= Math.exp(-1.2 * dt);
+          return particle.life > 0;
+        });
+
+        if (effect.timer >= effect.duration && effect.particles.length === 0) {
+          state.carEffect = {
+            type: null,
+            timer: 0,
+            duration: 0,
+            intensity: 0,
+            particles: []
+          };
         }
       }
 
@@ -1040,41 +1165,13 @@
         ctx.lineTo(w * 0.97, h);
         ctx.stroke();
 
-        drawSteeringWheel();
-      }
-
-      function drawSteeringWheel() {
-        const w = state.width;
-        const h = state.height;
-        const cx = w * 0.5;
-        const cy = isCoarseInput() ? h * 0.87 : h * 0.93;
-        const r = Math.min(w, h) * 0.11;
-
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(state.playerLane * 0.32);
-        ctx.strokeStyle = "rgba(255,255,255,0.28)";
-        ctx.lineWidth = 7;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = "rgba(255,255,255,0.4)";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(-r * 0.55, 0);
-        ctx.lineTo(r * 0.55, 0);
-        ctx.moveTo(0, -r * 0.55);
-        ctx.lineTo(0, r * 0.55);
-        ctx.stroke();
-        ctx.restore();
       }
 
       function drawObstacle(ob) {
         const depth = clamp(ob.depth, 0, 1.1);
         const x = laneToWorldX(ob.lane, depth);
         const y = lerp(state.height * 0.23, state.height * 0.9, depth);
-        const size = lerp(16, 92, depth);
+        const size = lerp(16, 92, depth) * (ob.type === "bin" ? 1.5 : 1);
         drawSprite(ob.type, x, y + size * 0.25, size, size, ob.hit ? 0.5 : 1);
       }
 
@@ -1082,7 +1179,7 @@
         const depth = clamp(reward.depth, 0, 1.1);
         const x = laneToWorldX(reward.lane, depth);
         const y = lerp(state.height * 0.23, state.height * 0.9, depth);
-        const size = lerp(18, 70, depth);
+        const size = lerp(18, 70, depth) * 0.8;
         drawSprite("diamond", x, y + size * 0.2, size, size, 1);
       }
 
@@ -1092,25 +1189,107 @@
         const roadEdgeOffset = lerp(state.width * 0.09, state.width * 0.47, depth);
         const x = state.width * 0.5 + item.side * (roadEdgeOffset + lerp(12, 56, depth));
         if (item.type === "tree") {
-          const size = lerp(26, 168, depth);
-          drawSprite("tree", x, y + size * 0.12, size * 0.9, size * 1.08, 0.95);
+          const size = lerp(30, 170, depth) * (item.sizeScale ?? 1);
+          drawSprite(item.sprite ?? "tree", x, y + size * 0.1, size * 1.0, size * 1.0, 0.96);
         } else {
-          const h = lerp(38, 228, depth);
-          const w = h * 0.62;
-          drawSprite("building", x, y + h * 0.08, w, h, 0.95);
+          const base = lerp(38, 240, depth) * (item.sizeScale ?? 1);
+          const w = base * (item.widthScale ?? 1);
+          const h = base * (item.heightScale ?? 1);
+          drawSprite(item.sprite ?? "building-city", x, y + h * 0.08, w, h, 0.95);
         }
       }
 
       function drawPlayerCar() {
         const x = playerWorldX();
         const y = isCoarseInput() ? state.height * 0.82 : state.height * 0.89;
-        // 固定车体比例，避免在不同屏幕下被拉伸变形（sprite 比例 240:360）
-        const bodyW = clamp(state.width * 0.125, 58, 92);
-        const bodyH = bodyW * 1.5;
+        const carSize = clamp(state.width * 0.1, 46, 74) * 1.5;
+        const effect = state.carEffect;
+        const effectProgress = effect.type ? clamp(effect.timer / Math.max(effect.duration, 0.001), 0, 1) : 0;
+        const effectFade = effect.type ? 1 - effectProgress : 0;
+        const shake = effect.type === "collision" ? effectFade * effect.intensity : 0;
+        const absorb = effect.type === "diamond" ? effectFade * effect.intensity : 0;
+        const bodyScale = effect.type === "collision"
+          ? 1 + effectFade * 0.05
+          : effect.type === "diamond"
+            ? 1 + effectFade * 0.08
+            : 1;
+
+        const shakeX = effect.type === "collision" ? randomSigned(0, 3.5) * shake : 0;
+        const shakeY = effect.type === "collision" ? randomSigned(0, 2.6) * shake : 0;
+        const lean = effect.type === "collision" ? randomSigned(0, 0.03) * shake : 0;
+
         ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(state.playerLane * 0.045);
-        drawSprite("car", 0, bodyH * 0.5, bodyW, bodyH, 1);
+
+        ctx.translate(x + shakeX, y + shakeY);
+        ctx.rotate(state.playerLane * 0.045 + lean);
+
+        if (effect.type === "diamond") {
+          ctx.save();
+          ctx.globalAlpha = 0.42 * absorb;
+          ctx.shadowColor = "rgba(78, 220, 255, 0.95)";
+          ctx.shadowBlur = 24 + 12 * absorb;
+          ctx.fillStyle = "rgba(108, 219, 255, 0.32)";
+          ctx.beginPath();
+          ctx.ellipse(0, carSize * 0.48, carSize * 0.52 * bodyScale, carSize * 0.34 * bodyScale, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        if (effect.type === "collision") {
+          ctx.save();
+          ctx.globalAlpha = 0.45 * effectFade;
+          ctx.fillStyle = "rgba(255, 83, 83, 0.35)";
+          ctx.beginPath();
+          ctx.arc(0, carSize * 0.48, carSize * 0.58, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.scale(bodyScale, effect.type === "collision" ? 1 - effectFade * 0.045 : 1);
+        drawSprite("car", 0, carSize * 0.5, carSize, carSize, 1);
+        ctx.restore();
+
+        if (effect.type === "diamond") {
+          ctx.save();
+          ctx.globalAlpha = 0.6 * absorb;
+          ctx.strokeStyle = "rgba(120, 230, 255, 0.95)";
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.ellipse(0, carSize * 0.5, carSize * (0.62 + effectFade * 0.12), carSize * (0.42 + effectFade * 0.08), 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (effect.type === "collision") {
+          ctx.save();
+          ctx.globalAlpha = 0.6 * effectFade;
+          ctx.strokeStyle = "rgba(255, 136, 136, 0.95)";
+          ctx.lineWidth = 2.6;
+          ctx.beginPath();
+          ctx.moveTo(-carSize * 0.32, carSize * 0.14);
+          ctx.lineTo(-carSize * 0.12, -carSize * 0.04);
+          ctx.lineTo(carSize * 0.02, carSize * 0.08);
+          ctx.lineTo(carSize * 0.18, -carSize * 0.08);
+          ctx.lineTo(carSize * 0.36, carSize * 0.1);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        for (const particle of effect.particles) {
+          const px = particle.x;
+          const py = particle.y + carSize * 0.5;
+          ctx.save();
+          ctx.globalAlpha = clamp(particle.life / 0.56, 0, 1);
+          ctx.fillStyle = particle.color;
+          ctx.shadowColor = particle.color;
+          ctx.shadowBlur = effect.type === "collision" ? 12 : 10;
+          ctx.beginPath();
+          ctx.arc(px, py, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
         ctx.restore();
       }
 
@@ -1162,9 +1341,14 @@
         ctx.fillStyle = `rgba(0,0,0,${0.35 + 0.37 * eased})`;
         ctx.fillRect(x - 16, y - 16, boxW + 32, boxH + 54);
 
-        ctx.strokeStyle = `rgba(255,255,255,${0.2 + 0.25 * eased})`;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, boxW, boxH);
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.45)";
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = "rgba(0,0,0,0.32)";
+        ctx.beginPath();
+        ctx.roundRect(x, y, boxW, boxH, 16);
+        ctx.fill();
+        ctx.restore();
 
         const contrast = state.manualContrast * (0.65 + 0.35 * Math.sin(state.autoContrastPhase));
         const patch = createGaborTexture(280, state.activeChallenge.orientation, state.currentCpd, clamp(contrast, 0, 1), state.activeChallenge.phase);
@@ -1179,19 +1363,7 @@
         // 点击区域本身保持透明，这里只在方框四周给出提示标记。
         if (canAnswer) {
           for (const zone of zones) {
-            const axisZone = zone.key === "top" || zone.key === "bottom" || zone.key === "left" || zone.key === "right";
-            ctx.fillStyle = axisZone ? "rgba(94, 190, 255, 0.22)" : "rgba(152, 220, 132, 0.2)";
-            ctx.beginPath();
-            ctx.arc(zone.cx, zone.cy, Math.max(15, boxW * 0.045), 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.42)";
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            ctx.fillStyle = "rgba(255,255,255,0.9)";
-            ctx.font = "700 18px 'Segoe UI', 'PingFang SC', sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(zone.hint, zone.cx, zone.cy);
+            drawHintMarker(zone);
           }
         }
 
@@ -1208,7 +1380,7 @@
       function render() {
         drawRoad();
 
-        for (const item of state.scenery) {
+        for (const item of [...state.scenery].sort((a, b) => a.depth - b.depth)) {
           drawScenery(item);
         }
 
@@ -1254,6 +1426,7 @@
           updateSpawners(dt);
           updateChallenge(dt);
           updateFeedback(dt);
+          updateCarEffect(dt);
           updateHud();
         }
 
@@ -1376,7 +1549,7 @@
       }
 
       function init() {
-        ["cone", "bin", "rock", "diamond", "tree", "building", "car"].forEach((k) => getSprite(k));
+        ["cone", "bin", "rock", "diamond", "tree", "building-city", "building-blocks", "car"].forEach((k) => getSprite(k));
         resize();
         bindEvents();
         setMode("roaming");

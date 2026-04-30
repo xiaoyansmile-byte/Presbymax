@@ -1,10 +1,31 @@
 import { trainingLabels } from "@prosbymax/core";
-import type { PlanTemplate, PlanTemplateSummary, ReportTemplateSummary, TodayTraining, TrainingRecord, UserPlan } from "@prosbymax/types";
+import type {
+  PlanTemplate,
+  PlanTemplateSummary,
+  ReportTemplateSummary,
+  TodayTraining,
+  TrainingRecord,
+  UserPlan,
+  SurgeryType,
+  UserGender
+} from "@prosbymax/types";
 
 export const currentUser = {
   id: "demo-user",
   name: "测试用户",
-  email: "demo@prosbymax.local"
+  email: "demo@prosbymax.local",
+  age: 54,
+  gender: "male",
+  surgeryType: "smile",
+  surgeryAt: "2026-01-15T09:30:00.000Z"
+} as const satisfies {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  gender: UserGender;
+  surgeryType: SurgeryType;
+  surgeryAt: string;
 };
 
 export const currentPlan: UserPlan = {
@@ -21,6 +42,7 @@ export const currentPlan: UserPlan = {
 
 export const todayTrainings: TodayTraining[] = [
   { id: "gabor-match", duration: "3 分钟", status: "ready" },
+  { id: "optictrain-navigation", duration: "3 分钟", status: "ready" },
   { id: "brightness", duration: "2 分钟", status: "done" },
   { id: "tunnel", duration: "3 分钟", status: "ready" }
 ];
@@ -69,6 +91,7 @@ export const planCatalog: PlanTemplate[] = [
     status: "active",
     trainings: [
       { id: "gabor-match", priority: "high", frequency: "每日 1 次" },
+      { id: "optictrain-navigation", priority: "medium", frequency: "每周 2 次" },
       { id: "brightness", priority: "medium", frequency: "每周 3 次" },
       { id: "tunnel", priority: "medium", frequency: "每周 2 次" }
     ]
@@ -133,6 +156,21 @@ export const demoRecords: TrainingRecord[] = [
     accuracy: 80,
     metrics: {},
     createdAt: "2026-04-21T10:02:00.000Z"
+  },
+  {
+    id: "demo-3",
+    userId: currentUser.id,
+    planId: currentPlan.id,
+    trainingType: "optictrain-navigation",
+    trainingLabel: trainingLabels["optictrain-navigation"],
+    startedAt: "2026-04-21T10:20:00.000Z",
+    endedAt: "2026-04-21T10:22:30.000Z",
+    durationSec: 150,
+    score: 9,
+    total: 12,
+    accuracy: 75,
+    metrics: { routeErrors: 2, targetHits: 9 },
+    createdAt: "2026-04-21T10:22:30.000Z"
   }
 ];
 

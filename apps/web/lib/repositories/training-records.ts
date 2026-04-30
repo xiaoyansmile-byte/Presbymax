@@ -1,6 +1,6 @@
 import type { AdminUserSummary, CreateTrainingRecordInput, TrainingRecord, TrainingRecordQuery } from "@prosbymax/types";
 import { createTrainingRecord } from "@prosbymax/core";
-import { loadStore, updateStore, toPublicUser, findPlanForUser } from "@/lib/persistent-store";
+import { applyTrainingRecordToStore, findPlanForUser, loadStore, toPublicUser, updateStore } from "@/lib/persistent-store";
 import { getCurrentPlanForUser } from "@/lib/repositories/plans";
 import { getCurrentUser } from "@/lib/repositories/users";
 
@@ -21,10 +21,7 @@ export async function listTrainingRecords(query: TrainingRecordQuery = {}): Prom
 export async function createStoredTrainingRecord(input: CreateTrainingRecordInput): Promise<TrainingRecord> {
   const record = createTrainingRecord(input);
 
-  await updateStore((store) => ({
-    ...store,
-    trainingRecords: [record, ...store.trainingRecords.filter((entry) => entry.id !== record.id)]
-  }));
+  await updateStore((store) => applyTrainingRecordToStore(store, record));
 
   return record;
 }

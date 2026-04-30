@@ -165,7 +165,7 @@ function GaborStimulusPreview({ config }: { config: GaborMatchConfig }) {
 
   return (
     <div className="rounded-app border border-border bg-white p-5">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center">
+              <div className="flex flex-col gap-5 md:flex-row md:items-center">
         <div>
           <h3 className="text-sm font-semibold">Gabor 刺激预览</h3>
           <p className="mt-1 max-w-xl text-sm leading-6 text-muted">
@@ -180,7 +180,7 @@ function GaborStimulusPreview({ config }: { config: GaborMatchConfig }) {
             <span>Sigma：{config.sigmaRatio}</span>
           </div>
         </div>
-        <div className="flex h-[240px] w-[240px] shrink-0 items-center justify-center rounded-app border border-border bg-slate-100 p-3">
+        <div className="flex aspect-square w-full max-w-[240px] shrink-0 items-center justify-center rounded-app border border-border bg-slate-100 p-3">
           <canvas ref={canvasRef} className="h-full w-full rounded-[6px]" aria-label="Gabor 刺激预览" />
         </div>
       </div>
@@ -196,6 +196,7 @@ export function TrainingConfigWorkbench() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [numberDrafts, setNumberDrafts] = useState<Record<string, string>>({});
   const activeModuleConfig = modules.find((module) => module.id === activeModule) || modules[0];
 
   useEffect(() => {
@@ -210,17 +211,43 @@ export function TrainingConfigWorkbench() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!config) return;
+
+    setNumberDrafts((current) => {
+      const nextDrafts = { ...current };
+
+      for (const field of numberFields) {
+        if (!(field.key in nextDrafts) || nextDrafts[field.key] === "") {
+          nextDrafts[field.key] = String(config[field.key]);
+        }
+      }
+
+      for (const field of stimulusNumberFields) {
+        if (!(field.key in nextDrafts) || nextDrafts[field.key] === "") {
+          nextDrafts[field.key] = String(config[field.key]);
+        }
+      }
+
+      return nextDrafts;
+    });
+  }, [config]);
+
   if (!config) {
     return <div className="rounded-app border border-border bg-white p-6 text-sm text-muted">正在加载配置...</div>;
   }
 
   function updateNumber(key: (typeof numberFields)[number]["key"], value: string) {
     setSaved(false);
+    setNumberDrafts((current) => ({ ...current, [key]: value }));
+    if (value === "") return;
     setConfig((current) => (current ? { ...current, [key]: Number(value) } : current));
   }
 
   function updateStimulusNumber(key: (typeof stimulusNumberFields)[number]["key"], value: string) {
     setSaved(false);
+    setNumberDrafts((current) => ({ ...current, [key]: value }));
+    if (value === "") return;
     setConfig((current) => (current ? { ...current, [key]: Number(value) } : current));
   }
 
@@ -244,6 +271,12 @@ export function TrainingConfigWorkbench() {
     }
 
     setConfig(normalized);
+    setNumberDrafts((current) => {
+      const nextDrafts = { ...current };
+      for (const field of numberFields) nextDrafts[field.key] = String(normalized[field.key]);
+      for (const field of stimulusNumberFields) nextDrafts[field.key] = String(normalized[field.key]);
+      return nextDrafts;
+    });
     setSaved(true);
   }
 
@@ -353,7 +386,7 @@ export function TrainingConfigWorkbench() {
                       className="mt-2 h-11 w-full rounded-app border border-border px-3"
                       min={1}
                       type="number"
-                      value={config[field.key]}
+                      value={numberDrafts[field.key] ?? String(config[field.key])}
                       onChange={(event) => updateNumber(field.key, event.target.value)}
                     />
                     <span className="mt-1 block text-xs leading-5 text-muted">{field.help}</span>
@@ -410,7 +443,7 @@ export function TrainingConfigWorkbench() {
                       className="mt-2 h-11 w-full rounded-app border border-border px-3"
                       step={field.step}
                       type="number"
-                      value={config[field.key]}
+                      value={numberDrafts[field.key] ?? String(config[field.key])}
                       onChange={(event) => updateStimulusNumber(field.key, event.target.value)}
                     />
                     <span className="mt-1 block text-xs leading-5 text-muted">{field.help}</span>
@@ -421,9 +454,9 @@ export function TrainingConfigWorkbench() {
           ) : null}
 
           {activeModuleConfig.status === "active" ? (
-            <div className="flex items-center gap-3 border-t border-border px-6 py-5">
+            <div className="flex flex-col gap-3 border-t border-border px-4 py-5 sm:flex-row sm:items-center sm:px-6">
               <button
-                className="h-11 rounded-app bg-primary px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="h-11 w-full rounded-app bg-primary px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
                 disabled={saving}
                 onClick={() => void save()}
               >

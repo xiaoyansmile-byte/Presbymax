@@ -112,6 +112,40 @@ export function ClockIcon(props: IconProps) {
   );
 }
 
+export function StopIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="6.5" y="6.5" width="11" height="11" rx="1.75" fill="currentColor" stroke="none" />
+    </IconBase>
+  );
+}
+
+export function PauseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="6.5" y="5.5" width="4" height="13" rx="1" fill="currentColor" stroke="none" />
+      <rect x="13.5" y="5.5" width="4" height="13" rx="1" fill="currentColor" stroke="none" />
+    </IconBase>
+  );
+}
+
+export function SolidPauseIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <rect x="6.25" y="5.5" width="4.6" height="13" rx="1.2" fill="currentColor" />
+      <rect x="13.15" y="5.5" width="4.6" height="13" rx="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function SolidPlayIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M8.25 6.9 17.5 12l-9.25 5.1Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function TrendUpIcon(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -167,6 +201,25 @@ export function ChevronDownIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="m6 9 6 6 6-6" />
+    </IconBase>
+  );
+}
+
+export function MenuIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 6h16" />
+      <path d="M4 12h16" />
+      <path d="M4 18h16" />
+    </IconBase>
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m6 6 12 12" />
+      <path d="m18 6-12 12" />
     </IconBase>
   );
 }

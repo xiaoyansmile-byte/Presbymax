@@ -8,12 +8,18 @@ export type TrainingType =
   | "tunnel";
 
 export type UserRole = "user" | "admin" | "clinician";
+export type UserGender = "male" | "female" | "other";
+export type SurgeryType = "smile" | "lisk" | "prosbymax" | "mcl";
 
 export type AppUser = {
   id: string;
   role: UserRole;
   displayName: string;
   email?: string | null;
+  age?: number | null;
+  gender?: UserGender | null;
+  surgeryType?: SurgeryType | null;
+  surgeryAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -183,11 +189,33 @@ export type ReportTemplateSummary = {
   status: "可生成" | "已生成" | "待审核模板";
 };
 
+export type ReportRange = "7d" | "30d" | "90d" | "all";
+
+export type ReportTrendPoint = {
+  date: string;
+  label: string;
+  sessions: number;
+  durationSec: number;
+  averageScore: number;
+  highestScore: number;
+};
+
+export type ReportSummary = {
+  totalSessions: number;
+  totalDurationSec: number;
+  highestScore: number;
+  averageScore: number;
+};
+
 export type ReportSnapshot = {
   currentUser: AppUser | null;
   currentPlan: UserPlan | null;
+  range: ReportRange;
+  rangeLabel: string;
+  summary: ReportSummary;
   templates: ReportTemplateSummary[];
   recentRecords: TrainingRecord[];
+  trend: ReportTrendPoint[];
   generatedAt: string;
 };
 

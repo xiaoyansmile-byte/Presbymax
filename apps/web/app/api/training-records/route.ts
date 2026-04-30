@@ -30,12 +30,14 @@ function parseQuery(request: NextRequest): TrainingRecordQuery {
 export async function GET(request: NextRequest) {
   const query = parseQuery(request);
   const currentUser = await getCurrentUser();
-  if (currentUser) {
-    query.userId = query.userId ?? currentUser.id;
-    if (!query.planId) {
-      const currentPlan = await getCurrentPlanForUser(currentUser.id);
-      query.planId = currentPlan?.id;
-    }
+  if (!currentUser) {
+    return NextResponse.json({ ok: true, data: [] });
+  }
+
+  query.userId = query.userId ?? currentUser.id;
+  if (!query.planId) {
+    const currentPlan = await getCurrentPlanForUser(currentUser.id);
+    query.planId = currentPlan?.id;
   }
 
   return NextResponse.json({ ok: true, data: await listTrainingRecords(query) });

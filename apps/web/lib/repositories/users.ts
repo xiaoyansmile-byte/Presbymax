@@ -40,7 +40,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
 }
 
 export async function updateCurrentUser(
-  patch: Partial<Pick<AppUser, "displayName" | "email">>
+  patch: Partial<Pick<AppUser, "displayName" | "email" | "age" | "gender" | "surgeryType" | "surgeryAt">>
 ): Promise<AppUser | null> {
   const token = await resolveCurrentSessionToken();
   if (!token) return null;
@@ -73,6 +73,10 @@ export async function createUserAccount(input: {
   password: string;
   role?: AppUser["role"];
   templateId?: string;
+  age?: number | null;
+  gender?: AppUser["gender"] | null;
+  surgeryType?: AppUser["surgeryType"] | null;
+  surgeryAt?: string | null;
 }): Promise<AppUser | null> {
   const email = input.email.trim().toLowerCase();
   const now = new Date().toISOString();
@@ -98,6 +102,10 @@ export async function createUserAccount(input: {
       role: input.role ?? "user",
       displayName: input.displayName.trim(),
       email,
+      age: input.age ?? null,
+      gender: input.gender ?? null,
+      surgeryType: input.surgeryType ?? null,
+      surgeryAt: input.surgeryAt ?? null,
       password: input.password,
       createdAt: now,
       updatedAt: now,

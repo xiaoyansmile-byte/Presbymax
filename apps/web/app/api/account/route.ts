@@ -10,7 +10,7 @@ export async function GET() {
     listPlanCatalog(),
     listUserPlans(currentUser?.id ?? null),
     listPlanInstanceEvents(currentUser?.id ?? null),
-    listTrainingRecords({ limit: 8, userId: currentUser?.id ?? undefined })
+    listTrainingRecords({ userId: currentUser?.id ?? undefined })
   ]);
 
   return NextResponse.json({

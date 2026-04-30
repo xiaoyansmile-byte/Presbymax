@@ -20,6 +20,12 @@ import {
   updateStore,
 } from "@/lib/persistent-store";
 
+const localDateKeyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" });
+
+function getLocalDateKey(value: string | Date) {
+  return localDateKeyFormatter.format(typeof value === "string" ? new Date(value) : value);
+}
+
 export async function getCurrentPlanId(): Promise<string> {
   const currentPlan = await getCurrentPlan();
   return currentPlan?.id ?? "";
@@ -49,7 +55,37 @@ export async function listPlanCatalog(): Promise<PlanTemplate[]> {
 
 export async function listTodayTrainings(): Promise<TodayTraining[]> {
   const store = await loadStore();
-  return store.todayTrainings;
+  const currentUser = await getCurrentUser();
+  const currentPlan = currentUser ? findPlanForUser(store, currentUser.id) : null;
+  if (!currentUser || !currentPlan) return store.todayTrainings;
+
+  const template = store.planCatalog.find((entry) => entry.id === currentPlan.templateId) ?? null;
+  if (!template) return store.todayTrainings;
+
+  const currentUserId = currentUser.id;
+  const todayKey = getLocalDateKey(new Date());
+  const completedToday = new Set(
+    store.trainingRecords
+      .filter((record) => record.userId === currentUserId)
+      .filter((record) => record.planId === currentPlan.id)
+      .filter((record) => getLocalDateKey(record.startedAt) === todayKey)
+      .map((record) => record.trainingType)
+  );
+  const durationByTrainingId: Record<string, string> = {
+    "gabor-match": "3 分钟",
+    "optictrain-navigation": "3 分钟",
+    "brightness": "2 分钟",
+    "tunnel": "3 分钟",
+    "reading": "3 分钟",
+    "glare": "3 分钟",
+    "flicker-gabor": "3 分钟"
+  };
+
+  return template.trainings.map((training) => ({
+    id: training.id,
+    duration: durationByTrainingId[training.id] ?? "3 分钟",
+    status: completedToday.has(training.id) ? "done" : "ready"
+  }));
 }
 
 export async function listPlanTemplates(): Promise<PlanTemplateSummary[]> {

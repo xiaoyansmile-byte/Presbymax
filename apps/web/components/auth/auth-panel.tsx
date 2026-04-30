@@ -83,16 +83,16 @@ export function AuthPanel() {
   }
 
   return (
-    <section className="app-shell py-10">
-      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="app-hero flex flex-col justify-between overflow-hidden p-8">
+      <section className="app-shell py-6 sm:py-10">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="app-hero flex flex-col justify-between overflow-hidden p-6 sm:p-8">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm font-semibold text-white/85">
               <AccountIcon className="h-4 w-4" aria-hidden="true" />
               账号入口
             </div>
-            <h2 className="mt-4 text-[2.4rem] font-semibold tracking-tight text-white">登录或创建账户</h2>
-            <p className="mt-4 text-[15px] leading-7 text-white/82">
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-[2.4rem]">登录或创建账户</h2>
+            <p className="mt-4 text-sm leading-7 text-white/82 sm:text-[15px]">
           登录后，你的训练记录、报告视图和管理员配置会按当前账号生效。注册后会自动登录。
             </p>
           </div>
@@ -103,12 +103,12 @@ export function AuthPanel() {
               <h3 className="mt-2 text-xl font-semibold text-white">{currentUser.displayName}</h3>
               <p className="mt-1 text-sm text-white/75">{currentUser.email ?? "无邮箱"}</p>
               <p className="mt-2 text-sm text-white/75">角色：{currentUser.role === "admin" ? "管理员" : "普通用户"}</p>
-              <div className="mt-5 flex gap-3">
-                <button type="button" className="app-btn-secondary h-11 bg-white px-4 text-blue-700" onClick={() => router.push("/")}>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <button type="button" className="app-btn-secondary h-11 w-full bg-white px-4 text-blue-700 sm:w-auto" onClick={() => router.push("/")}>
                   <ArrowRightIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                   进入应用
                 </button>
-                <button type="button" className="app-btn-secondary h-11 bg-white/10 px-4 text-white ring-1 ring-white/15" onClick={() => void logout()}>
+                <button type="button" className="app-btn-secondary h-11 w-full bg-white/10 px-4 text-white ring-1 ring-white/15 sm:w-auto" onClick={() => void logout()}>
                   <UsersIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                   退出登录
                 </button>
@@ -117,18 +117,18 @@ export function AuthPanel() {
           ) : null}
         </section>
 
-        <section className="app-surface p-6 md:p-8">
+        <section className="app-surface p-5 sm:p-6 md:p-8">
           <div className="grid grid-cols-2 gap-2 rounded-[18px] bg-slate-100 p-1">
             <button
               type="button"
-              className={["h-11 rounded-[14px] text-sm font-semibold", mode === "login" ? "bg-white text-slate-900 shadow-[0_8px_18px_rgba(15,23,42,0.06)]" : "text-slate-500"].join(" ")}
+              className={["h-10 rounded-[14px] text-xs font-semibold sm:h-11 sm:text-sm", mode === "login" ? "bg-white text-slate-900 shadow-[0_8px_18px_rgba(15,23,42,0.06)]" : "text-slate-500"].join(" ")}
               onClick={() => setMode("login")}
             >
               登录
             </button>
             <button
               type="button"
-              className={["h-11 rounded-[14px] text-sm font-semibold", mode === "register" ? "bg-white text-slate-900 shadow-[0_8px_18px_rgba(15,23,42,0.06)]" : "text-slate-500"].join(" ")}
+              className={["h-10 rounded-[14px] text-xs font-semibold sm:h-11 sm:text-sm", mode === "register" ? "bg-white text-slate-900 shadow-[0_8px_18px_rgba(15,23,42,0.06)]" : "text-slate-500"].join(" ")}
               onClick={() => setMode("register")}
             >
               注册
@@ -150,7 +150,7 @@ export function AuthPanel() {
 
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-slate-700">选择训练计划</p>
-                <div className="grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {activePlanTemplates.map((template) => {
                     const selected = template.id === selectedTemplateId;
                     return (
@@ -228,7 +228,7 @@ export function AuthPanel() {
         </section>
 
         <section className="space-y-6">
-          <section className="app-surface p-6">
+          <section className="app-surface p-5 sm:p-6">
             <h3 className="text-lg font-semibold text-slate-900">本地演示账号</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">为了方便测试，先准备了两个本地账户。</p>
             <div className="mt-4 grid gap-3 text-sm text-slate-600">
@@ -251,7 +251,7 @@ export function AuthPanel() {
             </div>
           </section>
 
-          <section className="app-surface p-6">
+          <section className="app-surface p-5 sm:p-6">
             <h3 className="text-lg font-semibold text-slate-900">这一步的意义</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               登录后，训练记录会绑定账号，管理员配置会受到权限控制，后面我们再接真正的用户计划和报告导出，会顺很多。

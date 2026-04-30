@@ -145,6 +145,7 @@ const usePostgres = Boolean(process.env.DATABASE_URL);
 let storeCache: PersistentStore | null = null;
 let writeQueue: Promise<void> = Promise.resolve();
 let sqliteDb: Database.Database | null = null;
+const localDateKeyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" });
 
 export function hashPassword(password: string, salt: string) {
   return createHash("sha256").update(`${salt}:${password}`).digest("hex");
@@ -155,6 +156,10 @@ export function createStoredUser(input: {
   role: AppUser["role"];
   displayName: string;
   email?: string | null;
+  age?: number | null;
+  gender?: AppUser["gender"] | null;
+  surgeryType?: AppUser["surgeryType"] | null;
+  surgeryAt?: string | null;
   password: string;
   createdAt: string;
   updatedAt: string;
@@ -167,6 +172,10 @@ export function createStoredUser(input: {
     role: input.role,
     displayName: input.displayName,
     email: input.email ?? null,
+    age: input.age ?? null,
+    gender: input.gender ?? null,
+    surgeryType: input.surgeryType ?? null,
+    surgeryAt: input.surgeryAt ?? null,
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
     passwordSalt,
@@ -194,6 +203,10 @@ export function verifyPassword(user: StoredUser, password: string) {
   return stored.length === received.length && timingSafeEqual(stored, received);
 }
 
+function getLocalDateKey(value: string | Date) {
+  return localDateKeyFormatter.format(typeof value === "string" ? new Date(value) : value);
+}
+
 function buildDemoUsers(): StoredUser[] {
   const base = "2026-04-21T00:00:00.000Z";
   return [
@@ -202,6 +215,10 @@ function buildDemoUsers(): StoredUser[] {
       role: "user",
       displayName: demoCurrentUser.name,
       email: demoCurrentUser.email,
+      age: demoCurrentUser.age,
+      gender: demoCurrentUser.gender,
+      surgeryType: demoCurrentUser.surgeryType,
+      surgeryAt: demoCurrentUser.surgeryAt,
       password: "demo1234",
       createdAt: base,
       updatedAt: base,
@@ -212,6 +229,10 @@ function buildDemoUsers(): StoredUser[] {
       role: "admin",
       displayName: "管理员",
       email: "admin@prosbymax.local",
+      age: null,
+      gender: null,
+      surgeryType: null,
+      surgeryAt: null,
       password: "admin1234",
       createdAt: base,
       updatedAt: base,
@@ -480,6 +501,10 @@ export function openSqliteDb() {
       role TEXT NOT NULL,
       display_name TEXT NOT NULL,
       email TEXT,
+      age INTEGER,
+      gender TEXT,
+      surgery_type TEXT,
+      surgery_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       password_salt TEXT NOT NULL,
@@ -555,6 +580,7 @@ export function openSqliteDb() {
     CREATE INDEX IF NOT EXISTS idx_training_records_user_started_at ON training_records(user_id, started_at DESC);
     CREATE INDEX IF NOT EXISTS idx_training_config_versions_type_status ON training_config_versions(training_type, status);
   `);
+  ensureUserProfileColumns(sqliteDb);
   return sqliteDb;
 }
 
@@ -572,12 +598,31 @@ export function writeSingletonJson(db: Database.Database, tableName: string, val
   `).run(JSON.stringify(value), now);
 }
 
+function ensureUserProfileColumns(db: Database.Database) {
+  const existingColumns = new Set(
+    (db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>).map((column) => column.name)
+  );
+  const migrations = [
+    { name: "age", sql: "ALTER TABLE users ADD COLUMN age INTEGER" },
+    { name: "gender", sql: "ALTER TABLE users ADD COLUMN gender TEXT" },
+    { name: "surgery_type", sql: "ALTER TABLE users ADD COLUMN surgery_type TEXT" },
+    { name: "surgery_at", sql: "ALTER TABLE users ADD COLUMN surgery_at TEXT" }
+  ];
+
+  for (const migration of migrations) {
+    if (!existingColumns.has(migration.name)) {
+      db.exec(migration.sql);
+    }
+  }
+}
+
 export function readStoreFromTables(): PersistentStore | null {
   const db = openSqliteDb();
   const fallback = createInitialStore();
+  ensureUserProfileColumns(db);
 
   const users = db.prepare(`
-    SELECT id, role, display_name, email, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
+    SELECT id, role, display_name, email, age, gender, surgery_type, surgery_at, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
     FROM users
     ORDER BY created_at ASC
   `).all() as Array<{
@@ -585,6 +630,10 @@ export function readStoreFromTables(): PersistentStore | null {
     role: AppUser["role"];
     display_name: string;
     email: string | null;
+    age: number | null;
+    gender: AppUser["gender"] | null;
+    surgery_type: AppUser["surgeryType"] | null;
+    surgery_at: string | null;
     created_at: string;
     updated_at: string;
     password_salt: string;
@@ -651,12 +700,16 @@ export function readStoreFromTables(): PersistentStore | null {
   if (!hasAnyData) return null;
 
   return {
-    version: Number((db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value?: string } | undefined)?.value ?? "2"),
+    version: Number((db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value?: string } | undefined)?.value ?? "3"),
     users: users.map((user) => ({
       id: user.id,
       role: user.role,
       displayName: user.display_name,
       email: user.email,
+      age: user.age,
+      gender: user.gender,
+      surgeryType: user.surgery_type,
+      surgeryAt: user.surgery_at,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
       passwordSalt: user.password_salt,
@@ -782,9 +835,9 @@ export async function persistStore(store: PersistentStore) {
 
     const insertUser = db.prepare(`
       INSERT INTO users (
-        id, role, display_name, email, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
+        id, role, display_name, email, age, gender, surgery_type, surgery_at, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
       ) VALUES (
-        @id, @role, @display_name, @email, @created_at, @updated_at, @password_salt, @password_hash, @password_updated_at, @active_plan_id
+        @id, @role, @display_name, @email, @age, @gender, @surgery_type, @surgery_at, @created_at, @updated_at, @password_salt, @password_hash, @password_updated_at, @active_plan_id
       )
     `);
     for (const user of nextStore.users) {
@@ -793,6 +846,10 @@ export async function persistStore(store: PersistentStore) {
         role: user.role,
         display_name: user.displayName,
         email: user.email,
+        age: user.age ?? null,
+        gender: user.gender ?? null,
+        surgery_type: user.surgeryType ?? null,
+        surgery_at: user.surgeryAt ?? null,
         created_at: user.createdAt,
         updated_at: user.updatedAt,
         password_salt: user.passwordSalt,
@@ -992,12 +1049,55 @@ export function findPlanForUser(store: PersistentStore, userId: string | null | 
   if (activePlanId) {
     const activePlan = store.userPlans.find((entry) => entry.id === activePlanId && entry.userId === userId);
     if (activePlan && activePlan.status !== "cancelled") {
-      return activePlan;
+      return derivePlanProgressFromRecords(store, activePlan);
     }
   }
 
-  const plan = store.userPlans.find((entry) => entry.userId === userId && entry.status === "active");
-  return plan ?? null;
+  const plan = store.userPlans
+    .filter((entry) => entry.userId === userId && entry.status === "active")
+    .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ?? null;
+  return plan ? derivePlanProgressFromRecords(store, plan) : null;
+}
+
+function countDistinctDailyCompletions(store: PersistentStore, plan: UserPlan) {
+  const seen = new Set<string>();
+
+  for (const record of store.trainingRecords) {
+    if (record.userId !== plan.userId) continue;
+    if (record.planId !== plan.id) continue;
+    seen.add(`${record.trainingType}|${getLocalDateKey(record.startedAt)}`);
+  }
+
+  return seen.size;
+}
+
+export function derivePlanProgressFromRecords(store: PersistentStore, plan: UserPlan): UserPlan {
+  if (plan.status === "cancelled" || plan.status === "expired") {
+    return plan;
+  }
+
+  const completedSessions = Math.min(countDistinctDailyCompletions(store, plan), plan.totalSessions);
+
+  if (completedSessions >= plan.totalSessions) {
+    return {
+      ...plan,
+      completedSessions,
+      status: "completed"
+    };
+  }
+
+  if (plan.status === "not_started" && completedSessions === 0) {
+    return {
+      ...plan,
+      completedSessions
+    };
+  }
+
+  return {
+    ...plan,
+    completedSessions,
+    status: "active"
+  };
 }
 
 export function findPlanTemplateById(store: PersistentStore, templateId: string | null | undefined): PlanTemplate | null {
@@ -1189,7 +1289,10 @@ export async function getCurrentPlanForUser(userId?: string | null): Promise<Use
 export async function listUserPlans(userId?: string | null): Promise<UserPlan[]> {
   const store = await loadStore();
   if (!userId) return [];
-  return store.userPlans.filter((plan) => plan.userId === userId).sort((a, b) => b.startDate.localeCompare(a.startDate));
+  return store.userPlans
+    .filter((plan) => plan.userId === userId)
+    .map((plan) => derivePlanProgressFromRecords(store, plan))
+    .sort((a, b) => b.startDate.localeCompare(a.startDate));
 }
 
 export async function listPlanCatalog(): Promise<PlanTemplate[]> {
@@ -1356,10 +1459,68 @@ export async function listTrainingRecords(query: TrainingRecordQuery = {}): Prom
 export async function createStoredTrainingRecord(input: CreateTrainingRecordInput): Promise<TrainingRecord> {
   const record = createTrainingRecord(input);
 
-  await updateStore((store) => ({
-    ...store,
-    trainingRecords: [record, ...store.trainingRecords.filter((entry) => entry.id !== record.id)]
-  }));
+  await updateStore((store) => applyTrainingRecordToStore(store, record));
 
   return record;
+}
+
+export function applyTrainingRecordToStore(store: PersistentStore, record: TrainingRecord): PersistentStore {
+  const alreadyStored = store.trainingRecords.some((entry) => entry.id === record.id);
+  const nextTrainingRecords = [record, ...store.trainingRecords.filter((entry) => entry.id !== record.id)];
+
+  if (alreadyStored) {
+    return {
+      ...store,
+      trainingRecords: nextTrainingRecords
+    };
+  }
+
+  const matchedPlanId = record.planId ?? (record.userId ? findPlanForUser(store, record.userId)?.id ?? null : null);
+  const matchedTodayTraining = store.todayTrainings.find((item) => item.id === record.trainingType) ?? null;
+  const recordDayKey = getLocalDateKey(record.startedAt);
+  const hasSameDayRecordForTraining = matchedPlanId
+    ? store.trainingRecords.some(
+        (entry) =>
+          entry.id !== record.id &&
+          entry.planId === matchedPlanId &&
+          entry.userId === record.userId &&
+          entry.trainingType === record.trainingType &&
+          getLocalDateKey(entry.startedAt) === recordDayKey
+      )
+    : false;
+  const countsTowardProgress = Boolean(matchedTodayTraining && !hasSameDayRecordForTraining);
+  const nextUserPlans: UserPlan[] = matchedPlanId && countsTowardProgress
+    ? store.userPlans.map((plan): UserPlan => {
+        if (plan.id !== matchedPlanId) return plan;
+        const nextCompletedSessions = Math.min(plan.completedSessions + 1, plan.totalSessions);
+        const nextStatus: UserPlan["status"] =
+          nextCompletedSessions >= plan.totalSessions ? "completed" : plan.status === "cancelled" ? plan.status : "active";
+        return {
+          ...plan,
+          completedSessions: nextCompletedSessions,
+          status: nextStatus
+        };
+      })
+    : store.userPlans;
+
+  const updatedPlan = matchedPlanId ? nextUserPlans.find((plan) => plan.id === matchedPlanId) ?? null : null;
+  const currentPlanMatches = Boolean(matchedPlanId && store.currentPlan.id === matchedPlanId);
+  const nextCurrentPlan: UserPlan = currentPlanMatches && updatedPlan ? updatedPlan : store.currentPlan;
+  const isTodayRecord = getLocalDateKey(record.startedAt) === getLocalDateKey(new Date());
+  const nextTodayTrainings = store.todayTrainings.map((item) => {
+    if (item.id === record.trainingType) {
+      return { ...item, status: isTodayRecord ? ("done" as const) : item.status };
+    }
+
+    return item;
+  });
+
+  return {
+    ...store,
+    trainingRecords: nextTrainingRecords,
+    userPlans: nextUserPlans,
+    currentPlan: nextCurrentPlan,
+    currentPlanId: currentPlanMatches && updatedPlan ? updatedPlan.id : store.currentPlanId,
+    todayTrainings: nextTodayTrainings
+  };
 }

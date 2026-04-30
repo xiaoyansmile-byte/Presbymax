@@ -32,7 +32,7 @@ export function TrainingRecordSummary() {
 
   return (
     <section className="grid grid-cols-2 gap-3">
-      <StatCard label="训练次数" value={stats.totalSessions} tone="blue" />
+      <StatCard label="练习次数" value={stats.totalSessions} tone="blue" />
       <StatCard label="最高分" value={stats.highestScore} tone="green" />
       <StatCard label="总时长" value={`${Math.round(stats.totalDurationSec / 60)}m`} tone="violet" />
       <StatCard label="平均分" value={stats.averageScore} tone="amber" />

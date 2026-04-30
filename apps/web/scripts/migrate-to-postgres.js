@@ -31,7 +31,7 @@ function loadSqliteSnapshot() {
     const users = db
       .prepare(
         `
-          SELECT id, role, display_name, email, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
+          SELECT id, role, display_name, email, age, gender, surgery_type, surgery_at, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
           FROM users
           ORDER BY created_at ASC
         `
@@ -42,6 +42,10 @@ function loadSqliteSnapshot() {
         role: user.role,
         displayName: user.display_name,
         email: user.email,
+        age: user.age,
+        gender: user.gender,
+        surgeryType: user.surgery_type,
+        surgeryAt: user.surgery_at,
         createdAt: user.created_at,
         updatedAt: user.updated_at,
         passwordSalt: user.password_salt,
@@ -253,21 +257,25 @@ async function main() {
 
     for (const user of snapshot.users) {
       await pool.query(
-        `
-          INSERT INTO users (
-            id, role, display_name, email, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-          )
-        `,
-        [
-          user.id,
-          user.role,
-          user.displayName,
-          user.email,
-          user.createdAt,
-          user.updatedAt,
-          user.passwordSalt,
+      `
+        INSERT INTO users (
+          id, role, display_name, email, age, gender, surgery_type, surgery_at, created_at, updated_at, password_salt, password_hash, password_updated_at, active_plan_id
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+        )
+      `,
+      [
+        user.id,
+        user.role,
+        user.displayName,
+        user.email,
+        user.age ?? null,
+        user.gender ?? null,
+        user.surgeryType ?? null,
+        user.surgeryAt ?? null,
+        user.createdAt,
+        user.updatedAt,
+        user.passwordSalt,
           user.passwordHash,
           user.passwordUpdatedAt,
           user.activePlanId

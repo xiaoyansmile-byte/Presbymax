@@ -47,14 +47,14 @@ export function StatCard({ label, value, tone = "blue" }: { label: string; value
   const styles = toneClasses[tone];
 
   return (
-    <div className={`rounded-[24px] border p-5 shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${styles.card}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className={`text-sm font-semibold ${styles.label}`}>{label}</p>
-          <p className={`mt-4 text-[2.1rem] font-semibold leading-none tracking-tight ${styles.value}`}>{value}</p>
+    <div className={`aspect-[1.35/1] min-w-0 overflow-hidden rounded-[24px] border p-3 shadow-[0_12px_28px_rgba(15,23,42,0.08)] sm:aspect-auto sm:p-5 ${styles.card}`}>
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className={`text-[13px] font-semibold sm:text-sm ${styles.label}`}>{label}</p>
+          <p className={`mt-2 text-[1.45rem] font-semibold leading-none tracking-tight sm:mt-4 sm:text-[2.1rem] ${styles.value}`}>{value}</p>
         </div>
-        <span className={`inline-flex h-11 w-11 items-center justify-center rounded-[18px] shadow-[0_8px_18px_rgba(15,23,42,0.06)] ring-1 ${styles.badge}`}>
-          <styles.Icon className="h-5 w-5" aria-hidden="true" />
+        <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[18px] shadow-[0_8px_18px_rgba(15,23,42,0.06)] ring-1 sm:h-11 sm:w-11 ${styles.badge}`}>
+          <styles.Icon className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
         </span>
       </div>
     </div>

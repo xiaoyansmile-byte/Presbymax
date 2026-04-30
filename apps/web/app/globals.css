@@ -20,10 +20,29 @@
 html,
 body {
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
+@media (min-width: 768px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 body {
   margin: 0;
+  position: relative;
   color: hsl(var(--foreground));
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 30%),
@@ -34,6 +53,14 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-wrap: break-word;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
 }
 
 button,
@@ -48,17 +75,44 @@ textarea {
   color: hsl(var(--foreground));
 }
 
+@keyframes feedback-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  18% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  72% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
 @layer components {
   .app-shell {
-    @apply mx-auto w-full max-w-7xl px-6;
+    @apply mx-auto w-full px-4 sm:px-5 lg:px-6;
+    max-width: 80rem;
   }
 
   .app-surface {
     @apply rounded-[28px] border border-slate-200/80 bg-[rgba(255,255,255,0.92)] shadow-[0_18px_45px_rgba(15,23,42,0.08)];
+    max-width: 100%;
+    min-width: 0;
   }
 
   .app-surface-soft {
     @apply rounded-[28px] border border-slate-200/70 bg-[rgba(255,255,255,0.82)] shadow-[0_12px_34px_rgba(15,23,42,0.06)];
+    max-width: 100%;
+    min-width: 0;
   }
 
   .app-hero {
@@ -66,10 +120,12 @@ textarea {
     background: linear-gradient(135deg, #2457ff 0%, #4f46e5 52%, #a21caf 100%);
     color: white;
     box-shadow: 0 24px 60px rgba(67, 56, 202, 0.24);
+    max-width: 100%;
+    min-width: 0;
   }
 
   .app-nav-pill {
-    @apply inline-flex h-10 items-center justify-center rounded-[16px] px-4 text-sm font-semibold transition;
+    @apply inline-flex h-9 items-center justify-center rounded-[14px] px-3 text-xs font-semibold transition sm:h-10 sm:px-4 sm:text-sm;
   }
 
   .app-nav-pill-active {
@@ -81,23 +137,23 @@ textarea {
   }
 
   .app-btn-primary {
-    @apply inline-flex items-center justify-center rounded-[16px] bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(67,56,202,0.26)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center rounded-[16px] bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(67,56,202,0.26)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:px-5;
   }
 
   .app-btn-secondary {
-    @apply inline-flex items-center justify-center rounded-[16px] border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_10px_22px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_10px_22px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-5;
   }
 
   .app-btn-danger {
-    @apply inline-flex items-center justify-center rounded-[16px] bg-gradient-to-r from-rose-500 to-red-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(239,68,68,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center rounded-[16px] bg-gradient-to-r from-rose-500 to-red-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(239,68,68,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:px-5;
   }
 
   .app-input {
-    @apply h-12 w-full rounded-[16px] border border-slate-200 bg-white px-4 text-[15px] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100;
+    @apply h-11 w-full rounded-[16px] border border-slate-200 bg-white px-3 text-[15px] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100 sm:h-12 sm:px-4;
   }
 
   .app-select {
-    @apply h-12 w-full rounded-[16px] border border-slate-200 bg-white px-4 text-[15px] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100;
+    @apply h-11 w-full rounded-[16px] border border-slate-200 bg-white px-3 text-[15px] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100 sm:h-12 sm:px-4;
   }
 
   .app-page-title {
